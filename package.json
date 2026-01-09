@@ -1,0 +1,119 @@
+{
+  "name": "unityshader",
+  "displayName": "Unity Shader",
+  "description": "Unity Shader language support for VS Code - syntax highlighting, code completion, hover tips and more for .shader, .cginc, .hlsl, .compute files",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.87.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "unity",
+    "shader",
+    "shaderlab",
+    "hlsl",
+    "cg",
+    "cginc",
+    "compute shader"
+  ],
+  "bugs": {
+    "url": "https://github.com/yyqrc/vscode-unityshader/issues"
+  },
+  "homepage": "https://github.com/yyqrc/vscode-unityshader/blob/master/README.md",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yyqrc/vscode-unityshader.git"
+  },
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "unityshader",
+        "aliases": [
+          "Unity Shader",
+          "ShaderLab",
+          "unityshader"
+        ],
+        "extensions": [
+          ".shader",
+          ".cginc",
+          ".hlsl",
+          ".hlsli",
+          ".compute",
+          ".cg"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "unityshader",
+        "scopeName": "source.unityshader",
+        "path": "./syntaxes/unityshader.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "title": "Unity Shader Configuration",
+      "type": "object",
+      "properties": {
+        "unityshader.suggest.basic": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable basic HLSL language suggestions."
+        },
+        "unityshader.suggest.unity": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable Unity built-in variables and functions suggestions."
+        },
+        "unityshader.suggest.urp": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable URP (Universal Render Pipeline) suggestions."
+        },
+        "unityshader.openDocOnSide": {
+          "type": "boolean",
+          "default": true,
+          "description": "Open documentation links on the side panel."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "unityshader.openDoc",
+        "title": "Unity Shader: Open Documentation"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/follow-redirects": "^1.14.4",
+    "@types/jsdom": "^21.1.6",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "18.x",
+    "@types/tmp": "^0.2.0",
+    "@types/vscode": "^1.87.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.2",
+    "@typescript-eslint/parser": "^7.0.2",
+    "@vscode/test-cli": "^0.0.6",
+    "@vscode/test-electron": "^2.3.9",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@vscode/ripgrep": "^1.15.9",
+    "follow-redirects": "^1.5.8",
+    "jsdom": "^11.3.0",
+    "tmp": "0.0.33"
+  }
+}
