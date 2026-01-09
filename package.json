@@ -81,10 +81,16 @@
         }
       }
     },
-    "commands": [
+"commands": [
       {
         "command": "unityshader.openDoc",
         "title": "Unity Shader: Open Documentation"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "unityshader",
+        "path": "./snippets/unityshader.json"
       }
     ]
   },

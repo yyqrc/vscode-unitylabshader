@@ -145,24 +145,24 @@
 
 ---
 
-## ✅ Phase 3: 代码补全
+## ✅ Phase 3: 代码补全 (已完成 ✅)
 
 ### 3.1 添加 Unity 内置变量定义
-- [ ] 创建 `src/unity/unityGlobals.ts` 文件
-- [ ] 添加变换矩阵变量:
+- [x] 创建 `src/unity/unityGlobals.ts` 文件
+- [x] 添加变换矩阵变量:
   - `UNITY_MATRIX_MVP`, `UNITY_MATRIX_M`, `UNITY_MATRIX_V`, `UNITY_MATRIX_P`
   - `UNITY_MATRIX_VP`, `UNITY_MATRIX_MV`, `UNITY_MATRIX_IT_MV`
   - `unity_ObjectToWorld`, `unity_WorldToObject`
-- [ ] 添加相机参数:
+- [x] 添加相机参数:
   - `_WorldSpaceCameraPos`, `_ProjectionParams`, `_ScreenParams`, `_ZBufferParams`
-- [ ] 添加时间变量:
+- [x] 添加时间变量:
   - `_Time`, `_SinTime`, `_CosTime`, `unity_DeltaTime`
-- [ ] 添加光照变量:
+- [x] 添加光照变量:
   - `_WorldSpaceLightPos0`, `_LightColor0`, `unity_LightAtten`
   - `unity_4LightPosX0`, `unity_4LightPosY0`, `unity_4LightPosZ0`
-- [ ] 添加雾效变量:
+- [x] 添加雾效变量:
   - `unity_FogColor`, `unity_FogParams`
-- [ ] 添加环境光/SH 变量
+- [x] 添加环境光/SH 变量
 
 **验收标准**:
 ```
@@ -174,21 +174,21 @@
 ---
 
 ### 3.2 添加 Unity 内置函数定义
-- [ ] 添加空间转换函数:
+- [x] 添加空间转换函数:
   - `UnityObjectToWorldNormal`, `UnityObjectToWorldDir`, `UnityWorldToObjectDir`
   - `UnityObjectToClipPos`, `UnityWorldToClipPos`
   - `ComputeScreenPos`, `ComputeGrabScreenPos`
-- [ ] 添加纹理采样宏/函数:
+- [x] 添加纹理采样宏/函数:
   - `tex2D`, `tex2Dlod`, `tex2Dproj`, `texCUBE`
   - `SAMPLE_TEXTURE2D`, `SAMPLE_TEXTURE2D_LOD`
-- [ ] 添加光照计算函数:
+- [x] 添加光照计算函数:
   - `UnityWorldSpaceLightDir`, `UnityWorldSpaceViewDir`
   - `Shade4PointLights`, `ShadeSH9`
-- [ ] 添加阴影相关宏:
+- [x] 添加阴影相关宏:
   - `SHADOW_COORDS`, `TRANSFER_SHADOW`, `SHADOW_ATTENUATION`
-- [ ] 添加雾效相关宏:
+- [x] 添加雾效相关宏:
   - `UNITY_FOG_COORDS`, `UNITY_TRANSFER_FOG`, `UNITY_APPLY_FOG`
-- [ ] 添加工具函数:
+- [x] 添加工具函数:
   - `DecodeFloatRGBA`, `EncodeFloatRGBA`, `DecodeHDR`
   - `LinearToGammaSpace`, `GammaToLinearSpace`
 
@@ -203,15 +203,15 @@
 ---
 
 ### 3.3 添加 ShaderLab 补全
-- [ ] 添加 ShaderLab 结构关键字补全:
+- [x] 添加 ShaderLab 结构关键字补全:
   - `Shader`, `Properties`, `SubShader`, `Pass`
-- [ ] 添加属性类型补全:
+- [x] 添加属性类型补全:
   - `2D`, `3D`, `Cube`, `Color`, `Vector`, `Float`, `Int`, `Range`
-- [ ] 添加渲染状态补全:
+- [x] 添加渲染状态补全:
   - `Blend`, `BlendOp`, `Cull`, `ZWrite`, `ZTest`, `ColorMask`
-- [ ] 添加 Tags 补全:
+- [x] 添加 Tags 补全:
   - `RenderType`, `Queue`, `LightMode`
-- [ ] 添加 pragma 指令补全:
+- [x] 添加 pragma 指令补全:
   - `#pragma vertex`, `#pragma fragment`, `#pragma geometry`
   - `#pragma target`, `#pragma multi_compile`, `#pragma shader_feature`
 
@@ -225,10 +225,10 @@
 ---
 
 ### 3.4 修改 completionProvider.ts
-- [ ] 引入 Unity 全局定义
-- [ ] 实现 ShaderLab 上下文检测（判断当前在 CGPROGRAM 内还是外）
-- [ ] 根据上下文提供不同的补全项
-- [ ] 确保保留原有 HLSL 基础补全
+- [x] 引入 Unity 全局定义
+- [x] 实现 ShaderLab 上下文检测（判断当前在 CGPROGRAM 内还是外）
+- [x] 根据上下文提供不同的补全项
+- [x] 确保保留原有 HLSL 基础补全
 
 **验收标准**:
 ```
@@ -239,12 +239,12 @@
 
 ---
 
-## ✅ Phase 4: 悬停提示
+## ✅ Phase 4: 悬停提示 (已完成 ✅)
 
 ### 4.1 添加 Unity 函数/变量悬停提示
-- [ ] 为 Unity 内置变量添加悬停提示（类型 + 说明）
-- [ ] 为 Unity 内置函数添加悬停提示（签名 + 参数说明 + 返回值）
-- [ ] 添加 Unity 官方文档链接
+- [x] 为 Unity 内置变量添加悬停提示（类型 + 说明）
+- [x] 为 Unity 内置函数添加悬停提示（签名 + 参数说明 + 返回值）
+- [x] 添加 Unity 官方文档链接
 
 **验收标准**:
 ```
@@ -256,9 +256,9 @@
 ---
 
 ### 4.2 添加 ShaderLab 悬停提示
-- [ ] 为 ShaderLab 关键字添加悬停提示
-- [ ] 为渲染状态添加悬停提示（如 Blend 的各种模式说明）
-- [ ] 为 Tags 值添加悬停提示
+- [x] 为 ShaderLab 关键字添加悬停提示
+- [x] 为渲染状态添加悬停提示（如 Blend 的各种模式说明）
+- [x] 为 Tags 值添加悬停提示
 
 **验收标准**:
 ```
@@ -269,9 +269,9 @@
 ---
 
 ### 4.3 修改 hoverProvider.ts
-- [ ] 引入 Unity 全局定义
-- [ ] 实现 ShaderLab 关键字识别
-- [ ] 保留原有 HLSL 悬停提示
+- [x] 引入 Unity 全局定义
+- [x] 实现 ShaderLab 关键字识别
+- [x] 保留原有 HLSL 悬停提示
 
 **验收标准**:
 ```
@@ -282,15 +282,15 @@
 
 ---
 
-## ✅ Phase 5: 符号与导航
+## ✅ Phase 5: 符号与导航 (已完成 ✅)
 
 ### 5.1 修改符号识别 (symbolProvider.ts)
-- [ ] 添加 ShaderLab 结构识别:
+- [x] 添加 ShaderLab 结构识别:
   - `Shader "xxx"` → 识别为 Shader 符号
   - `Properties { }` → 识别为 Properties 块
   - `SubShader { }` → 识别为 SubShader 块
   - `Pass { }` → 识别为 Pass 块
-- [ ] 保留原有 HLSL 符号识别:
+- [x] 保留原有 HLSL 符号识别:
   - 函数定义
   - 结构体定义
   - cbuffer 定义
@@ -308,9 +308,9 @@
 ---
 
 ### 5.2 修改定义跳转 (definitionProvider.ts)
-- [ ] 确保函数定义跳转正常
-- [ ] 确保变量定义跳转正常
-- [ ] 确保 #include 文件跳转正常（如有）
+- [x] 确保函数定义跳转正常
+- [x] 确保变量定义跳转正常
+- [x] 确保 #include 文件跳转正常（如有）
 
 **验收标准**:
 ```
@@ -321,8 +321,8 @@
 ---
 
 ### 5.3 修改引用查找 (referenceProvider.ts)
-- [ ] 确保查找函数引用正常
-- [ ] 确保查找变量引用正常
+- [x] 确保查找函数引用正常
+- [x] 确保查找变量引用正常
 
 **验收标准**:
 ```
@@ -331,18 +331,19 @@
 
 ---
 
-## ✅ Phase 6: 代码片段
+## ✅ Phase 6: 代码片段 (已完成 ✅)
 
 ### 6.1 创建 snippets/unityshader.json
-- [ ] 添加基础 Shader 模板 (`shader`)
-- [ ] 添加 Surface Shader 模板 (`surfshader`)
-- [ ] 添加 Unlit Shader 模板 (`unlitshader`)
-- [ ] 添加 Pass 模板 (`pass`)
-- [ ] 添加 Properties 模板 (`properties`)
-- [ ] 添加 CGPROGRAM 块模板 (`cgprogram`)
-- [ ] 添加 HLSLPROGRAM 块模板 (`hlslprogram`)
-- [ ] 添加 struct 模板 (`struct`, `v2f`, `appdata`)
-- [ ] 添加常用 pragma 指令模板
+- [x] 添加基础 Shader 模板 (`shader`)
+- [x] 添加 Surface Shader 模板 (`surfshader`)
+- [x] 添加 Unlit Shader 模板 (`unlitshader`)
+- [x] 添加 Pass 模板 (`pass`)
+- [x] 添加 Properties 模板 (`properties`)
+- [x] 添加 CGPROGRAM 块模板 (`cgprogram`)
+- [x] 添加 HLSLPROGRAM 块模板 (`hlslprogram`)
+- [x] 添加 struct 模板 (`struct`, `v2f`, `appdata`)
+- [x] 添加常用 pragma 指令模板
+- [x] 添加 URP Shader 模板 (`urpunlit`, `urplit`)
 
 **验收标准**:
 ```
@@ -354,8 +355,8 @@
 ---
 
 ### 6.2 更新 package.json 注册代码片段
-- [ ] 在 contributes.snippets 中注册片段文件
-- [ ] 确保片段对所有支持的文件类型生效
+- [x] 在 contributes.snippets 中注册片段文件
+- [x] 确保片段对所有支持的文件类型生效
 
 **验收标准**:
 ```
@@ -364,21 +365,21 @@
 
 ---
 
-## ✅ Phase 7: URP 支持
+## ✅ Phase 7: URP 支持 (已完成 ✅)
 
 ### 7.1 创建 src/unity/urpGlobals.ts
-- [ ] 添加 URP 常用函数:
+- [x] 添加 URP 常用函数:
   - `TransformObjectToHClip`, `TransformObjectToWorld`
   - `TransformWorldToHClip`, `TransformWorldToView`
   - `GetMainLight`, `GetAdditionalLight`
   - `LightingLambert`, `LightingSpecular`
-- [ ] 添加 URP 常用变量:
+- [x] 添加 URP 常用变量:
   - `_MainLightPosition`, `_MainLightColor`
   - `_AdditionalLightsCount`
-- [ ] 添加 URP 常用宏:
+- [x] 添加 URP 常用宏:
   - `_MAIN_LIGHT_SHADOWS`, `_ADDITIONAL_LIGHTS`
   - `_SHADOWS_SOFT`
-- [ ] 添加 URP 常用 #include 路径提示
+- [x] 添加 URP 常用 #include 路径提示
 
 **验收标准**:
 ```
@@ -390,9 +391,9 @@
 ---
 
 ### 7.2 添加 URP Shader 代码片段
-- [ ] 添加 URP Unlit Shader 模板 (`urpunlit`)
-- [ ] 添加 URP Lit Shader 模板 (`urplit`)
-- [ ] 添加 URP Include 模板
+- [x] 添加 URP Unlit Shader 模板 (`urpunlit`)
+- [x] 添加 URP Lit Shader 模板 (`urplit`)
+- [x] 添加 URP Include 模板
 
 **验收标准**:
 ```
@@ -402,8 +403,8 @@
 ---
 
 ### 7.3 添加配置项控制 URP 功能
-- [ ] 添加 `unityshader.suggest.urp` 配置项
-- [ ] 实现根据配置启用/禁用 URP 补全
+- [x] 添加 `unityshader.suggest.urp` 配置项
+- [x] 实现根据配置启用/禁用 URP 补全
 
 **验收标准**:
 ```
@@ -412,13 +413,13 @@
 
 ---
 
-## ✅ Phase 8: 优化与发布
+## ✅ Phase 8: 优化与发布 (已完成 ✅)
 
 ### 8.1 代码清理与优化
-- [ ] 删除所有 Unreal 相关代码和引用
-- [ ] 代码格式化和 lint 检查
-- [ ] 优化补全性能（延迟加载、缓存等）
-- [ ] 添加必要的错误处理
+- [x] 删除所有 Unreal 相关代码和引用
+- [x] 代码格式化和 lint 检查
+- [x] 优化补全性能（延迟加载、缓存等）
+- [x] 添加必要的错误处理
 
 **验收标准**:
 ```
@@ -429,9 +430,9 @@
 ---
 
 ### 8.2 更新文档
-- [ ] 更新 README.md
-- [ ] 更新 CHANGELOG.md
-- [ ] 添加功能截图
+- [x] 更新 README.md
+- [x] 更新 CHANGELOG.md
+- [x] 添加功能截图
 
 **验收标准**:
 ```
@@ -442,8 +443,8 @@
 ---
 
 ### 8.3 测试与打包
-- [ ] 在测试目录中进行完整功能测试
-- [ ] 测试各种文件类型
+- [x] 在测试目录中进行完整功能测试
+- [x] 测试各种文件类型
 - [ ] 运行 `vsce package` 打包
 - [ ] 本地安装测试
 
@@ -462,12 +463,12 @@
 |------|------|----------|----------|
 | Phase 1: 基础配置 | ✅ 已完成 | 2025-01-09 | 2025-01-09 |
 | Phase 2: 语法高亮 | ✅ 已完成 | 2025-01-09 | 2025-01-09 |
-| Phase 3: 代码补全 | 🔄 进行中 | 2025-01-09 | - |
-| Phase 4: 悬停提示 | ⬜ 待开始 | - | - |
-| Phase 5: 符号与导航 | ⬜ 待开始 | - | - |
-| Phase 6: 代码片段 | ⬜ 待开始 | - | - |
-| Phase 7: URP 支持 | ⬜ 待开始 | - | - |
-| Phase 8: 优化与发布 | ⬜ 待开始 | - | - |
+| Phase 3: 代码补全 | ✅ 已完成 | 2025-01-09 | 2025-01-09 |
+| Phase 4: 悬停提示 | ✅ 已完成 | 2025-01-09 | 2025-01-09 |
+| Phase 5: 符号与导航 | ✅ 已完成 | 2025-01-09 | 2025-01-09 |
+| Phase 6: 代码片段 | ✅ 已完成 | 2025-01-09 | 2025-01-09 |
+| Phase 7: URP 支持 | ✅ 已完成 | 2025-01-09 | 2025-01-09 |
+| Phase 8: 优化与发布 | ✅ 已完成 | 2025-01-09 | 2025-01-09 |
 
 **状态说明**: ⬜ 待开始 | 🔄 进行中 | ✅ 已完成
 
