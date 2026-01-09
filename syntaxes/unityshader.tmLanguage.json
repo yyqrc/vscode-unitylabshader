@@ -61,14 +61,12 @@
       "patterns": [
         {
           "comment": "ShaderLab Shader declaration",
-          "match": "\\b(Shader)\\s+\"",
-          "captures": {
-            "1": { "name": "keyword.declaration.shader.unityshader" }
-          }
+          "match": "\\b(Shader)\\b",
+          "name": "keyword.declaration.shader.unityshader"
         },
         {
           "comment": "ShaderLab structure keywords",
-          "match": "\\b(Shader|Properties|SubShader|Pass|Category|CGPROGRAM|ENDCG|CGINCLUDE|HLSLPROGRAM|ENDHLSL|HLSLINCLUDE)\\b",
+          "match": "\\b(Properties|SubShader|Pass|Category|LOD|FallBack|CustomEditor|UsePass|GrabPass|Name)\\b",
           "name": "keyword.structure.shaderlab.unityshader"
         },
         {
@@ -113,7 +111,7 @@
         },
         {
           "comment": "ShaderLab other keywords",
-          "match": "\\b(LOD|FallBack|CustomEditor|UsePass|GrabPass|Name|Lighting|Material|SetTexture|Fog|AlphaTest|BindChannels|Bind)\\b",
+          "match": "\\b(Lighting|Material|SetTexture|Fog|AlphaTest|BindChannels|Bind)\\b",
           "name": "keyword.other.shaderlab.unityshader"
         },
         {

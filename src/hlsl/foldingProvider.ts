@@ -4,7 +4,8 @@ import {
     FoldingRangeKind,
     TextDocument,
     CancellationToken,
-    ProviderResult
+    ProviderResult,
+    Position
 } from 'vscode';
 
 /**
@@ -31,8 +32,42 @@ export default class HLSLFoldingRangeProvider implements FoldingRangeProvider {
         
         const conditionalStack: ConditionalBlock[][] = []; // 嵌套栈
         
+        // 用于跟踪 {} 括号的栈
+        const braceStack: number[] = [];
+        
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
+            
+            // 处理 {} 括号折叠
+            for (let j = 0; j < lines[i].length; j++) {
+                const char = lines[i][j];
+                
+                // 跳过字符串和注释中的括号
+                const beforeChar = lines[i].substring(0, j);
+                const inString = (beforeChar.match(/"/g) || []).length % 2 === 1 ||
+                                (beforeChar.match(/'/g) || []).length % 2 === 1;
+                const inComment = beforeChar.includes('//') || 
+                                 (text.substring(0, document.offsetAt(new Position(i, j))).lastIndexOf('/*') > 
+                                  text.substring(0, document.offsetAt(new Position(i, j))).lastIndexOf('*/'));
+                
+                if (!inString && !inComment) {
+                    if (char === '{') {
+                        braceStack.push(i);
+                    } else if (char === '}') {
+                        if (braceStack.length > 0) {
+                            const startLine = braceStack.pop()!;
+                            // 只有当开始和结束不在同一行时才创建折叠区域
+                            if (i > startLine) {
+                                ranges.push(new FoldingRange(
+                                    startLine,
+                                    i,
+                                    FoldingRangeKind.Region
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
             
             // 匹配 #if, #ifdef, #ifndef
             if (/^#\s*(if|ifdef|ifndef)\b/.test(line)) {

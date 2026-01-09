@@ -66,6 +66,10 @@ export default class HLSLHoverProvider implements HoverProvider {
         return commands.executeCommand<SymbolInformation[]>('vscode.executeDocumentSymbolProvider', document.uri);
     }
 
+    dispose() {
+        // No resources to dispose
+    }
+
     public async provideHover(document: TextDocument, position: Position, token: CancellationToken): Promise<Hover | null | undefined> {
         
         let enableBasic = workspace.getConfiguration('unityshader').get<boolean>('suggest.basic', true);
