@@ -13,103 +13,88 @@ export interface IEntries { [name: string]: IEntry; }
 
 export var intrinsicfunctions: IEntries = {
     abort: {
-        description: 'Submits an error message to the information queue and terminates the current draw or dispatch call being executed.',
-        link: 'https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/abort'
+        description: 'Submits an error message to the information queue and terminates the current draw or dispatch call being executed.\n向信息队列提交错误消息并终止当前正在执行的绘制或调度调用。',
     },
     abs: {
-        description: 'Returns the absolute value of the specified value.',
-        parameters: [{ label: 'value', documentation: 'The specified value' }],
-        link: 'https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-abs'
+        description: 'Returns the absolute value of the specified value.\n返回指定值的绝对值。',
+        parameters: [{ label: 'value', documentation: 'The specified value | 指定的值' }],
     },
     acos: {
-        description: 'Returns the arccosine of the specified value.',
+        description: 'Returns the arccosine of the specified value.\n返回指定值的反余弦值。',
         parameters: [
             {
                 label: 'value',
-                documentation: 'The specified value. Each component should be a floating-point value within the range of -1 to 1.'
+                documentation: 'The specified value. Each component should be a floating-point value within the range of -1 to 1. | 指定的值，每个分量应为-1到1范围内的浮点值。'
             }
         ],
-        link: 'https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-acos'
     },
     all: {
-        description: 'Determines if all components of the specified value are non-zero.',
-        parameters: [{ label: 'value', documentation: 'The specified value' }],
-        link: 'https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-all'
+        description: 'Determines if all components of the specified value are non-zero.\n判断指定值的所有分量是否都非零。',
+        parameters: [{ label: 'value', documentation: 'The specified value | 指定的值' }],
     },
     AllMemoryBarrier: {
-        description: 'Blocks execution of all threads in a group until all memory accesses have been completed.',
-        link: 'https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/allmemorybarrier'
+        description: 'Blocks execution of all threads in a group until all memory accesses have been completed.\n阻塞组中所有线程的执行，直到所有内存访问完成。',
     },
     AllMemoryBarrierWithGroupSync: {
-        description: 'Blocks execution of all threads in a group until all memory accesses have been completed and all threads in the group have reached this call.',
-        link: 'https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/allmemorybarrierwithgroupsync'
+        description: 'Blocks execution of all threads in a group until all memory accesses have been completed and all threads in the group have reached this call.\n阻塞组中所有线程的执行，直到所有内存访问完成且组中所有线程都到达此调用。',
     },
     any: {
-        description: 'Determines if any components of the specified value are non-zero.',
-        parameters: [{ label: 'value', documentation: 'The specified value' }],
-        link: 'https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-any'
+        description: 'Determines if any components of the specified value are non-zero.\n判断指定值是否有任意分量非零。',
+        parameters: [{ label: 'value', documentation: 'The specified value | 指定的值' }],
     },
     asdouble: {
-        description: 'Reinterprets a cast value (two 32-bit values) into a double.',
+        description: 'Reinterprets a cast value (two 32-bit values) into a double.\n将两个32位值重新解释为双精度浮点数。',
         parameters: [
             {
                 label: 'lowbits',
-                documentation: 'The low 32-bit pattern of the input value.'
+                documentation: 'The low 32-bit pattern of the input value. | 输入值的低32位。'
             },
             {
                 label: 'highbits',
-                documentation: 'The high 32-bit pattern of the input value.'
+                documentation: 'The high 32-bit pattern of the input value. | 输入值的高32位。'
             }
         ],
-        link: 'https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/asdouble'
     },
     asfloat: {
-        description: 'Interprets the bit pattern of the input value as a floating-point number.',
-        parameters: [{ label: 'value', documentation: 'The input value.' }],
-        link: 'https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-asfloat'
+        description: 'Interprets the bit pattern of the input value as a floating-point number.\n将输入值的位模式解释为浮点数。',
+        parameters: [{ label: 'value', documentation: 'The input value. | 输入值' }],
     },
     asin: {
-        description: 'Returns the arcsine of the specified value.',
-        parameters: [{ label: 'value', documentation: 'The specified value' }],
-        link: 'https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-asin'
+        description: 'Returns the arcsine of the specified value.\n返回指定值的反正弦值。',
+        parameters: [{ label: 'value', documentation: 'The specified value | 指定的值' }],
     },
     asint: {
-        description: 'Interprets the bit pattern of the input value as an integer.',
-        parameters: [{ label: 'value', documentation: 'The input value.' }],
-        link: 'https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/asint'
+        description: 'Interprets the bit pattern of the input value as an integer.\n将输入值的位模式解释为整数。',
+        parameters: [{ label: 'value', documentation: 'The input value. | 输入值' }],
     },
     asuint: {
-        description: 'Reinterprets the bit pattern of a 64-bit value as two unsigned 32-bit integers.',
+        description: 'Reinterprets the bit pattern of a 64-bit value as two unsigned 32-bit integers.\n将64位值的位模式重新解释为两个无符号32位整数。',
         parameters: [
-            { label: 'value', documentation: 'The input value.' },
+            { label: 'value', documentation: 'The input value. | 输入值' },
             {
                 label: 'lowbits',
-                documentation: 'The low 32-bit pattern of the input value.'
+                documentation: 'The low 32-bit pattern of the input value. | 输入值的低32位。'
             },
             {
                 label: 'highbits',
-                documentation: 'The high 32-bit pattern of the input value.'
+                documentation: 'The high 32-bit pattern of the input value. | 输入值的高32位。'
             }
         ],
-        link: 'https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/asuint'
     },
     atan: {
-        description: 'Returns the arctangent of the specified value.',
-        parameters: [{ label: 'value', documentation: 'The specified value' }],
-        link: 'https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-atan'
+        description: 'Returns the arctangent of the specified value.\n返回指定值的反正切值。',
+        parameters: [{ label: 'value', documentation: 'The specified value | 指定的值' }],
     },
     atan2: {
-        description: 'Returns the arctangent of two values (x,y).',
+        description: 'Returns the arctangent of two values (x,y).\n返回两个值(x,y)的反正切值。',
         parameters: [
-            { label: 'y', documentation: 'The y value.' },
-            { label: 'x', documentation: 'The x value.' }
+            { label: 'y', documentation: 'The y value. | y值' },
+            { label: 'x', documentation: 'The x value. | x值' }
         ],
-        link: 'https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-atan2'
     },
     ceil: {
-        description: 'Returns the smallest integer value that is greater than or equal to the specified value.',
-        parameters: [{ label: 'value', documentation: 'The specified value' }],
-        link: 'https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-ceil'
+        description: 'Returns the smallest integer value that is greater than or equal to the specified value.\n返回大于或等于指定值的最小整数（向上取整）。',
+        parameters: [{ label: 'value', documentation: 'The specified value | 指定的值' }],
     },
     CheckAccessFullyMapped: {
         description: 'Determines whether all values from a Sample, Gather, or Load operation accessed mapped tiles in a tiled resource.',

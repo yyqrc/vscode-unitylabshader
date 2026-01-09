@@ -10,6 +10,7 @@ import HLSLSignatureHelpProvider from './hlsl/signatureProvider';
 import HLSLSymbolProvider from './hlsl/symbolProvider';
 import HLSLDefinitionProvider from './hlsl/definitionProvider';
 import HLSLReferenceProvider from './hlsl/referenceProvider';
+import HLSLFoldingRangeProvider from './hlsl/foldingProvider';
 
 // Unity Shader 支持的文件类型
 const documentSelector = [
@@ -32,8 +33,10 @@ export function activate(context: vscode.ExtensionContext) {
         }
     }
 
-    // 注册 Hover 提供器
-    context.subscriptions.push(vscode.languages.registerHoverProvider(documentSelector, new HLSLHoverProvider()));
+    // 注册 Hover 提供器（需要保存实例以确保命令正确注册）
+    const hoverProvider = new HLSLHoverProvider();
+    context.subscriptions.push(vscode.languages.registerHoverProvider(documentSelector, hoverProvider));
+    context.subscriptions.push(hoverProvider);
     
     // 注册代码补全提供器
     context.subscriptions.push(vscode.languages.registerCompletionItemProvider(documentSelector, new HLSLCompletionItemProvider(), '.'));
@@ -54,6 +57,9 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.languages.registerDefinitionProvider(documentSelector, definitionProvider));
     context.subscriptions.push(vscode.languages.registerImplementationProvider(documentSelector, definitionProvider));
     context.subscriptions.push(vscode.languages.registerTypeDefinitionProvider(documentSelector, definitionProvider));
+
+    // 注册折叠提供器（支持 #if/#else/#endif 分段折叠）
+    context.subscriptions.push(vscode.languages.registerFoldingRangeProvider(documentSelector, new HLSLFoldingRangeProvider()));
 
 }
 

@@ -23,10 +23,7 @@
         { "open": "/**", "close": " */", "notIn": ["string"] }
     ],
     "folding": {
-        "markers": {
-            "start": "^\\s*(//\\s*#region\\b)|(#if\\b)",
-            "end": "^\\s*(//\\s*#endregion\\b)|(#endif\\b)"
-        }
+        "offSide": false
     },
     // symbols that can be used to surround a selection
     "surroundingPairs": [

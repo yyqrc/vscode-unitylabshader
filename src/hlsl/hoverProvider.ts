@@ -1,9 +1,6 @@
 
-import { HoverProvider, Hover, SymbolInformation, SymbolKind, MarkdownString, TextDocument, CancellationToken, Range, Position, Uri, ViewColumn, Disposable, commands, window, workspace, WebviewPanel } from 'vscode';
-import { HTML_TEMPLATE } from './html';
+import { HoverProvider, Hover, SymbolInformation, SymbolKind, MarkdownString, TextDocument, CancellationToken, Range, Position, commands, workspace } from 'vscode';
 import hlslGlobals = require('./hlslGlobals');
-import { https } from 'follow-redirects';
-import { JSDOM } from 'jsdom';
 import {
     unityBuiltinVariables,
     unityBuiltinFunctions,
@@ -63,68 +60,10 @@ export function textToMarkedString(text: string): MarkdownString {
 	return new MarkdownString(text.replace(/[\\`*_{}[\]()#+\-.!]/g, '\\$&'));
 }
 
-export function linkToMarkdownString(linkUrl: string): MarkdownString {
-    let link = new MarkdownString('[HLSL documentation][1]\n\n[1]: ');
-
-    if (linkUrl !== undefined || linkUrl !== '') {
-        let openDocOnSide = workspace.getConfiguration('unityshader').get<boolean>('openDocOnSide', false);
-        if (openDocOnSide) {
-            link.appendText(encodeURI( 'command:shader.openLink?' + JSON.stringify([linkUrl, true])));
-        } else {
-            link.appendText(linkUrl);
-        }
-        link.isTrusted = true;
-    }
-    
-    return link;
-}
-
 export default class HLSLHoverProvider implements HoverProvider {
-
-    private _subscriptions: Disposable[] = [];
-    private _panel: WebviewPanel|null = null;
 
     private getSymbols(document: TextDocument): Thenable<SymbolInformation[]> {
         return commands.executeCommand<SymbolInformation[]>('vscode.executeDocumentSymbolProvider', document.uri);
-    }
-
-    constructor() {
-        this._subscriptions.push( commands.registerCommand('shader.openLink', (link: string, newWindow: boolean) => {
-            if (!this._panel) {
-                this._panel = window.createWebviewPanel(
-                    'hlsldoc',
-                    'HLSL Documentation',
-                    newWindow ? ViewColumn.Two : ViewColumn.Active,
-                    {
-                        enableScripts: true
-                    }
-                );
-
-                this._panel.onDidDispose( () => {
-                    this._panel = null;
-                });
-
-                this._panel.webview.onDidReceiveMessage(
-                    message => {
-                        switch (message.command) {
-                            case 'clickLink':
-                                commands.executeCommand('shader.openLink', message.text);
-                                return;
-                        }
-                    }
-                );
-            }
-            this._panel.reveal();
-            getWebviewContent(link).then(html => {
-                if (this._panel){
-                    this._panel.webview.html = html;
-                } 
-            });
-        }));
-    }
-
-    dispose() {
-        this._subscriptions.forEach(s => {s.dispose();});
     }
 
     public async provideHover(document: TextDocument, position: Position, token: CancellationToken): Promise<Hover | null | undefined> {
@@ -161,10 +100,6 @@ export default class HLSLHoverProvider implements HoverProvider {
                 let contents: MarkdownString[] = [];
                 contents.push(new MarkdownString(signature));
                 contents.push(textToMarkedString(entry.description));
-
-                if (entry.link){
-                    contents.push(linkToMarkdownString(entry.link));
-                }
                 
                 return new Hover(contents, wordRange);
             }
@@ -338,9 +273,6 @@ export default class HLSLHoverProvider implements HoverProvider {
                 let contents: MarkdownString[] = [];
                 contents.push(new MarkdownString(signature));
                 contents.push(textToMarkedString(entry.description));
-                if (entry.link){
-                    contents.push(linkToMarkdownString(entry.link));
-                }
                 return new Hover(contents, wordRange);
             }
 
@@ -351,9 +283,6 @@ export default class HLSLHoverProvider implements HoverProvider {
                 let contents: MarkdownString[] = [];
                 contents.push(new MarkdownString(signature));
                 contents.push(textToMarkedString(entry.description));
-                if (entry.link) {
-                    contents.push(linkToMarkdownString(entry.link));
-                }
                 
                 return new Hover(contents, wordRange);
             }
@@ -365,9 +294,6 @@ export default class HLSLHoverProvider implements HoverProvider {
                 let contents: MarkdownString[] = [];
                 contents.push(new MarkdownString(signature));
                 contents.push(textToMarkedString(entry.description));
-                if (entry.link) {
-                    contents.push(linkToMarkdownString(entry.link));
-                }
                 
                 return new Hover(contents, wordRange);
             }
@@ -380,9 +306,6 @@ export default class HLSLHoverProvider implements HoverProvider {
                 let contents: MarkdownString[] = [];
                 contents.push(new MarkdownString(signature));
                 contents.push(textToMarkedString(entry.description));
-                if (entry.link) {
-                    contents.push(linkToMarkdownString(entry.link));
-                }
                 
                 return new Hover(contents, wordRange);
             }
@@ -394,9 +317,6 @@ export default class HLSLHoverProvider implements HoverProvider {
                 let contents: MarkdownString[] = [];
                 contents.push(new MarkdownString(signature));
                 contents.push(textToMarkedString(entry.description));
-                if (entry.link) {
-                    contents.push(linkToMarkdownString(entry.link));
-                }
                 return new Hover(contents, wordRange);
             }
         }
@@ -419,60 +339,8 @@ export default class HLSLHoverProvider implements HoverProvider {
                     contents.push( new MarkdownString( document.getText(s.location.range)) );
                 }
                 
-                return new Hover(contents, wordRange);
+            return new Hover(contents, wordRange);
             }
         }
     } 
-}
-
-function getWebviewContent(link: string): Promise<string> {
-    const uri = Uri.parse(link);
-    return new Promise<string>((resolve, reject) => {
-        let request = https.request({
-            host: uri.authority,
-            path: uri.path,
-            rejectUnauthorized: workspace.getConfiguration().get("http.proxyStrictSSL", true)
-        }, (response) => {
-            if (response.statusCode === 301 || response.statusCode === 302)
-            {
-                if (response.headers.location)
-                {
-                    return resolve(response.headers.location);
-                }
-            }
-
-            if (response.statusCode && response.statusCode !== 200)
-            {
-                return resolve(response.statusCode.toString());
-            }
-                
-            let html = '';
-            response.on('data', (data) => { html += data.toString(); });
-            response.on('end', () => {
-                const dom = new JSDOM(html);
-                let topic = '';
-                let node = dom.window.document.querySelector('.content');
-                if (node) {
-                    let num = node.getElementsByTagName('a').length;
-                    for (let i = 0; i < num; ++i) {
-                        const href = node.getElementsByTagName('a')[i].href;
-                        const fulllink = new dom.window.URL(href, uri.toString()).href;
-                        node.getElementsByTagName('a')[i].href = '#';
-                        node.getElementsByTagName('a')[i].setAttribute('onclick', `clickLink('${fulllink}')`);
-                    }
-                    node.querySelector('.metadata.page-metadata')?.remove();
-                    node.querySelector('#center-doc-outline')?.remove();
-                    topic = node.outerHTML;
-
-                } else {
-                    let link = uri.with({ scheme: 'https' }).toString();
-                    topic = `<a href="${link}">No topic found, click to follow link</a>`;
-                }
-                resolve(HTML_TEMPLATE.replace('{0}', topic));
-            });
-            response.on('error', (error) => { console.log(error); });
-        });
-        request.on('error', (error) => { console.log(error); });
-        request.end();
-    });
 }
