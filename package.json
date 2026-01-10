@@ -81,7 +81,7 @@
         }
       }
     },
-"commands": [
+    "commands": [
       {
         "command": "unityshader.openDoc",
         "title": "Unity Shader: Open Documentation"
@@ -95,31 +95,23 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src --ext ts",
-    "test": "vscode-test"
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "package": "npm run check-types && node esbuild.js --production",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src --ext ts"
   },
   "devDependencies": {
-    "@types/follow-redirects": "^1.14.4",
-    "@types/jsdom": "^21.1.6",
-    "@types/mocha": "^10.0.6",
-    "@types/node": "18.x",
-    "@types/tmp": "^0.2.0",
+    "@types/node": "^18.19.130",
     "@types/vscode": "^1.87.0",
     "@typescript-eslint/eslint-plugin": "^7.0.2",
     "@typescript-eslint/parser": "^7.0.2",
-    "@vscode/test-cli": "^0.0.6",
-    "@vscode/test-electron": "^2.3.9",
+    "esbuild": "^0.27.2",
     "eslint": "^8.56.0",
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@vscode/ripgrep": "^1.15.9",
-    "follow-redirects": "^1.5.8",
-    "jsdom": "^11.3.0",
-    "tmp": "0.0.33"
+    "@vscode/ripgrep": "^1.15.9"
   }
 }
