@@ -6,6 +6,25 @@ import { getRgPath } from '../common';
 
 export default class HLSLDefinitionProvider implements DefinitionProvider, ImplementationProvider, TypeDefinitionProvider {
 
+    /**
+     * 判断是否为开发环境
+     * 开发环境：通过 "Run Extension" 或 "Debug Extension" 启动
+     * 生产环境：通过 VSIX 安装后运行
+     */
+    private isDevelopment(): boolean {
+        return process.env.VSCODE_DEBUG_MODE === 'true' || 
+               process.env.NODE_ENV === 'development';
+    }
+
+    /**
+     * 开发环境日志输出
+     */
+    private devLog(message: string): void {
+        if (this.isDevelopment()) {
+            console.log(message);
+        }
+    }
+
     // 支持的文件扩展名
     private _hlslPattern = ['.hlsl', '.hlsli', '.fx', '.fxh', '.vsh', '.psh', '.cginc', '.compute', '.shader', '.cg'];
 
@@ -14,6 +33,8 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
      */
     private async searchMacroDefinitions(name: string, rootPath: string): Promise<Location[]> {
         const results: Location[] = [];
+        
+        this.devLog(`[Macro] Searching: "${name}"`);
         
         try {
             const includePattern = '-g *' + this._hlslPattern.join(' -g *');
@@ -45,13 +66,20 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
                             new Position(lineNum, endCol)
                         );
                         results.push(new Location(Uri.file(filepath), range));
+                        this.devLog(`[Macro] ✓ Found: ${lineMatch[1]}:${lineNum + 1}`);
                     }
                 }
             }
+            
+            if (results.length === 0) {
+                this.devLog(`[Macro] ✗ Not found`);
+            }
         } catch (error: any) {
             // 没有找到结果时 ripgrep 会抛出错误，这是正常的
-            if (error.status !== 1) {
-                console.error('Error searching macro definitions:', error.message);
+            if (error.status === 1) {
+                this.devLog(`[Macro] ✗ Not found`);
+            } else {
+                this.devLog(`[Macro] Error: ${error.message}`);
             }
         }
         
@@ -63,6 +91,8 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
      */
     private async searchFunctionDefinitions(name: string, rootPath: string): Promise<Location[]> {
         const results: Location[] = [];
+
+        this.devLog(`[Function] Searching: "${name}"`);
 
         try {
             const includePattern = '-g *' + this._hlslPattern.join(' -g *');
@@ -95,12 +125,19 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
                             new Position(lineNum, endCol)
                         );
                         results.push(new Location(Uri.file(filepath), range));
+                        this.devLog(`[Function] ✓ Found: ${lineMatch[1]}:${lineNum + 1}`);
                     }
                 }
             }
+            
+            if (results.length === 0) {
+                this.devLog(`[Function] ✗ Not found`);
+            }
         } catch (error: any) {
-            if (error.status !== 1) {
-                console.error('Error searching function definitions:', error.message);
+            if (error.status === 1) {
+                this.devLog(`[Function] ✗ Not found`);
+            } else {
+                this.devLog(`[Function] Error: ${error.message}`);
             }
         }
 
@@ -112,6 +149,8 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
      */
     private async searchStructDefinitions(name: string, rootPath: string): Promise<Location[]> {
         const results: Location[] = [];
+        
+        this.devLog(`[Struct] Searching: "${name}"`);
         
         try {
             const includePattern = '-g *' + this._hlslPattern.join(' -g *');
@@ -142,12 +181,19 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
                             new Position(lineNum, endCol)
                         );
                         results.push(new Location(Uri.file(filepath), range));
+                        this.devLog(`[Struct] ✓ Found: ${lineMatch[1]}:${lineNum + 1}`);
                     }
                 }
             }
+            
+            if (results.length === 0) {
+                this.devLog(`[Struct] ✗ Not found`);
+            }
         } catch (error: any) {
-            if (error.status !== 1) {
-                console.error('Error searching struct definitions:', error.message);
+            if (error.status === 1) {
+                this.devLog(`[Struct] ✗ Not found`);
+            } else {
+                this.devLog(`[Struct] Error: ${error.message}`);
             }
         }
         
@@ -206,7 +252,7 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
                     });
                 }
             } catch (error) {
-                console.error('Error executing workspace symbol provider:', error);
+                this.devLog(`[Symbol] Error: ${error}`);
             }
 
             // 2. 始终使用 ripgrep 进行搜索以确保找到所有定义
@@ -291,7 +337,7 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             }
             
         } catch (error) {
-            console.error('Error searching include file:', error);
+            this.devLog(`[Include] Error: ${error}`);
         }
         
         return null;
@@ -299,45 +345,67 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
 
     /**
      * 搜索 FallBack Shader
+     * 支持搜索 Shader "ShaderName" 定义，例如：
+     * - FallBack "Diffuse" -> 搜索 Shader "Diffuse"
+     * - FallBack "Mobile/VertexLit" -> 搜索 Shader "Mobile/VertexLit"
      */
     private async searchFallBackShader(shaderName: string, rootPath: string): Promise<Location[]> {
         const results: Location[] = [];
+        const rgPath = getRgPath();
+        
+        this.devLog(`[FallBack] Searching: "${shaderName}"`);
         
         try {
-            const includePattern = '-g *.shader';
-            const execOpts = {
-                cwd: rootPath,
-                maxBuffer: 1024 * 1024
-            };
+            // 注意：/ 字符在 ripgrep 正则表达式中不是特殊字符，不需要转义
+            // 只需要转义正则表达式的特殊字符：. * + ? ^ $ { } ( ) | [ ] \
+            const escapedShaderName = shaderName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             
-            // 搜索 Shader "ShaderName" 定义
-            const shaderPattern = `^\\s*Shader\\s+"${shaderName}"`;
-            const output = execSync(`"${getRgPath()}" ${includePattern} --case-sensitive -H --line-number --column --hidden -e "${shaderPattern}" .`, execOpts);
+            // 构建搜索模式：匹配 Shader "ShaderName" 行
+            const pattern = `^\\s*Shader\\s+"${escapedShaderName}"`;
             
-            const lines = output.toString().split('\n');
+            // 执行 ripgrep 搜索
+            const execOpts = { cwd: rootPath, maxBuffer: 1024 * 1024 };
+            const cmd = `"${rgPath}" -g "*.shader" --case-sensitive -H --line-number --hidden -e '${pattern}' .`;
+            
+            const output = execSync(cmd, execOpts);
+            
+            // 解析搜索结果
+            const lines = output.toString().split('\n').filter(line => line.trim());
+            
             for (const line of lines) {
-                const lineMatch = /^(?:((?:[a-zA-Z]:)?[^:]*):)?(\d+):(\d+):(.+)/.exec(line);
-                if (lineMatch) {
-                    const filepath = join(rootPath, lineMatch[1]);
-                    const lineNum = parseInt(lineMatch[2]) - 1;
-                    const lineText = lineMatch[4];
-                    
-                    // 找到 Shader 名称的精确位置
-                    const shaderNameMatch = new RegExp(`Shader\\s+"(${shaderName.replace(/\//g, '\\/')})"`, 'i').exec(lineText);
-                    if (shaderNameMatch) {
-                        const startCol = lineText.indexOf(shaderNameMatch[1]);
-                        const endCol = startCol + shaderName.length;
-                        const range = new Range(
-                            new Position(lineNum, startCol),
-                            new Position(lineNum, endCol)
-                        );
-                        results.push(new Location(Uri.file(filepath), range));
-                    }
+                // 解析 ripgrep 输出格式：filepath:lineNum:lineText
+                const match = /^([^:]+):(\d+):(.+)$/.exec(line);
+                if (!match) continue;
+                
+                const [, relativePath, lineNumStr, lineText] = match;
+                const filepath = join(rootPath, relativePath);
+                const lineNum = parseInt(lineNumStr) - 1;
+                
+                // 在行文本中查找 Shader 名称的精确位置
+                const nameMatch = new RegExp(`Shader\\s+"([^"]+)"`, 'i').exec(lineText);
+                if (nameMatch && nameMatch[1] === shaderName) {
+                    const startCol = lineText.indexOf(nameMatch[1]);
+                    const endCol = startCol + shaderName.length;
+                    const range = new Range(
+                        new Position(lineNum, startCol),
+                        new Position(lineNum, endCol)
+                    );
+                    results.push(new Location(Uri.file(filepath), range));
+                    this.devLog(`[FallBack] ✓ Found: ${relativePath}:${lineNum + 1}`);
                 }
             }
+            
+            if (results.length === 0) {
+                this.devLog(`[FallBack] ✗ Not found`);
+            } else {
+                this.devLog(`[FallBack] ✓ Jump to: ${results[0].uri.fsPath}`);
+            }
         } catch (error: any) {
-            if (error.status !== 1) {
-                console.error('Error searching FallBack shader:', error.message);
+            // ripgrep 返回 status 1 表示没有找到匹配
+            if (error.status === 1) {
+                this.devLog(`[FallBack] ✗ Not found`);
+            } else {
+                this.devLog(`[FallBack] Error: ${error.message}`);
             }
         }
         
@@ -375,8 +443,8 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
                 }
             }
             
-            // 2. 检查是否在 FallBack 行上
-            const fallbackMatch = /FallBack\s+"([^"]+)"/.exec(lineText);
+            // 2. 检查是否在 FallBack 行上（不区分大小写）
+            const fallbackMatch = /FallBack\s+"([^"]+)"/i.exec(lineText);
             if (fallbackMatch) {
                 const shaderName = fallbackMatch[1];
                 const shaderStart = lineText.indexOf(shaderName);
@@ -392,6 +460,9 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
                             return;
                         }
                     }
+                    // FallBack 未找到时直接返回，不继续搜索符号
+                    reject();
+                    return;
                 }
             }
             

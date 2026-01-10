@@ -31,6 +31,29 @@ const wsSearchPatterns: ISymbolPattern[] = [
     { kind: SymbolKind.Module, pattern: /^Shader\s+"([^"]+)"/.source },
 ];
 
+/**
+ * 全面转义正则表达式特殊字符以避免 shell 命令错误
+ * @param pattern 需要转义的正则表达式模式
+ * @returns 转义后的模式
+ */
+function escapeRegExpForShell(pattern: string): string {
+    // 首先处理最敏感的字符 - 双引号
+    let escaped = pattern.replace(/"/g, '\\"');
+    
+    // 处理美元符号
+    escaped = escaped.replace(/\$/g, '\\$');
+    
+    // 处理反引号
+    escaped = escaped.replace(/`/g, '\\`');
+    
+    // 处理感叹号（在某些 shell 中有特殊含义）
+    escaped = escaped.replace(/!/g, '\\!');
+    
+    return escaped;
+}
+
+
+
 export interface ISymbolCache { [path: string]: SymbolInformation[]; }
 
 export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvider, WorkspaceSymbolProvider {
@@ -39,6 +62,23 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
 
     // 支持的文件扩展名
     private _hlslPattern = ['.hlsl', '.hlsli', '.fx', '.fxh', '.vsh', '.psh', '.cginc', '.compute', '.shader', '.cg'];
+
+    /**
+     * 判断是否为开发环境
+     */
+    private isDevelopment(): boolean {
+        return process.env.VSCODE_DEBUG_MODE === 'true' || 
+               process.env.NODE_ENV === 'development';
+    }
+
+    /**
+     * 开发环境日志输出
+     */
+    private devLog(message: string): void {
+        if (this.isDevelopment()) {
+            console.log(message);
+        }
+    }
     
     constructor() {
         const extention = extensions.getExtension('vscode.hlsl');
@@ -242,13 +282,13 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
 
                     let includePattern = '-g *' + this._hlslPattern.join(' -g *');
 
-                    let currentWsDir = process.cwd();
-                    console.log('Current working directory:', currentWsDir);
-
                     if (query.startsWith(':')) {
                         let searchPattern = query.slice(3, query.length);
                         try {
-                            let output = execSync(`"${getRgPath()}" ${includePattern} -o --case-sensitive -H --line-number --column --hidden -e "${searchPattern}" .`, execOpts);
+                            // 使用全面的转义函数
+                            const escapedPattern = escapeRegExpForShell(searchPattern);
+                            this.devLog(`[Symbol] Searching custom pattern: ${searchPattern}`);
+                            let output = execSync(`"${getRgPath()}" ${includePattern} -o --case-sensitive -H --line-number --column --hidden -e "${escapedPattern}" .`, execOpts);
                             let kind = SymbolKind.Function;
                             if (query[1] === 'm') {
                                 kind = SymbolKind.Constant;
@@ -274,8 +314,9 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
                                     results.push(new SymbolInformation(word, kind, containerName, new Location(Uri.file(filepath), range)));
                                 }
                             }
+                            this.devLog(`[Symbol] Found ${results.length} custom matches`);
                         } catch (error:any) {
-                            console.error(`Error searching in ${folder.name}:`, error.message);
+                            this.devLog(`[Symbol] Error: ${error.message}`);
                         }
 
                     }
@@ -285,31 +326,99 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
                             const kind = entry.kind;
                             const searchPattern = entry.pattern;
 
-                            let output = execSync(`"${getRgPath()}" ${includePattern} -o --case-sensitive -H --line-number --column --hidden -e "${searchPattern}" .`, execOpts);
+                            // 使用全面的转义函数
+                            const escapedPattern = escapeRegExpForShell(searchPattern);
+                            this.devLog(`[Symbol] Searching ${SymbolKind[kind]}`);
+                            
+                            // 添加重试机制和容错处理
+                            let retryCount = 0;
+                            const maxRetries = 3;
+                            let success = false;
+                            
+                            while (retryCount <= maxRetries && !success) {
+                                try {
+                                    const cmd = `"${getRgPath()}" ${includePattern} -o --case-sensitive -H --line-number --column --hidden -e "${escapedPattern}" .`;
+                                    
+                                    let output = execSync(cmd, execOpts);
+                                    
+                                    let lines = output.toString().split('\n');
+                                    let matchCount = 0;
+                                    for (let line of lines) {
+                                        let lineMatch = /^(?:((?:[a-zA-Z]:)?[^:]*):)?(\d+):(\d):(.+)/.exec(line);
+                                        if (lineMatch) {
+                                            matchCount++;
+                                            let position: Position = new Position(parseInt(lineMatch[2]) - 1, parseInt(lineMatch[3]) - 1);
+                                            let range = new Range(position, position);
+                                            let filepath = join(rootPath, lineMatch[1]);
+                                            let regex = new RegExp(searchPattern);
+                                            let word = '?????';
+                                            let symbolMatch = regex.exec(lineMatch[4].toString());
+                                            if (symbolMatch) {
+                                                word = symbolMatch[1];
+                                                position = position.with({ character: symbolMatch[0].indexOf(word) });
+                                                range = new Range(position, position.translate(0, word.length));
+                                            }
 
-                            let lines = output.toString().split('\n');
-                            for (let line of lines) {
-                                let lineMatch = /^(?:((?:[a-zA-Z]:)?[^:]*):)?(\d+):(\d):(.+)/.exec(line);
-                                if (lineMatch) {
-                                    let position: Position = new Position(parseInt(lineMatch[2]) - 1, parseInt(lineMatch[3]) - 1);
-                                    let range = new Range(position, position);
-                                    let filepath = join(rootPath, lineMatch[1]);
-                                    let regex = new RegExp(searchPattern);
-                                    let word = '?????';
-                                    let symbolMatch = regex.exec(lineMatch[4].toString());
-                                    if (symbolMatch) {
-                                        word = symbolMatch[1];
-                                        position = position.with({ character: symbolMatch[0].indexOf(word) });
-                                        range = new Range(position, position.translate(0, word.length));
+                                            let containerName = `${lineMatch[2]} : ${lineMatch[4].split(' ')[0]}`;
+                                            results.push(new SymbolInformation(word, kind, containerName, new Location(Uri.file(filepath), range)));
+                                        }
                                     }
+                                    if (matchCount > 0) {
+                                        this.devLog(`[Symbol] ✓ Found ${matchCount} ${SymbolKind[kind]} symbols`);
+                                    }
+                                    success = true;
+                                } catch (execErr: any) {
+                                    retryCount++;
+                                    this.devLog(`[Symbol] Retry ${retryCount}/${maxRetries + 1}`);
+                                    
+                                    if (retryCount > maxRetries) {
+                                        // 最后一次尝试使用简化模式
+                                        this.devLog(`[Symbol] Trying fallback pattern...`);
+                                        try {
+                                            // 使用最基本的模式进行搜索
+                                            const basicPattern = searchPattern.replace(/\^/g, '').replace(/\$/g, '').replace(/\+/g, '').replace(/\*/g, '').replace(/\?/g, '').replace(/\{/g, '').replace(/\}/g, '').replace(/\[/g, '').replace(/\]/g, '').replace(/\(/g, '').replace(/\)/g, '').replace(/\|/g, '').replace(/\\/g, '');
+                                            
+                                            const cmd = `"${getRgPath()}" ${includePattern} -o --case-sensitive -H --line-number --column --hidden -e "${basicPattern}" .`;
+                                            
+                                            let output = execSync(cmd, execOpts);
+                                            
+                                            let lines = output.toString().split('\n');
+                                            let matchCount = 0;
+                                            for (let line of lines) {
+                                                let lineMatch = /^(?:((?:[a-zA-Z]:)?[^:]*):)?(\d+):(\d):(.+)/.exec(line);
+                                                if (lineMatch) {
+                                                    matchCount++;
+                                                    let position: Position = new Position(parseInt(lineMatch[2]) - 1, parseInt(lineMatch[3]) - 1);
+                                                    let range = new Range(position, position);
+                                                    let filepath = join(rootPath, lineMatch[1]);
+                                                    let regex = new RegExp(searchPattern);
+                                                    let word = '?????';
+                                                    let symbolMatch = regex.exec(lineMatch[4].toString());
+                                                    if (symbolMatch) {
+                                                        word = symbolMatch[1];
+                                                        position = position.with({ character: symbolMatch[0].indexOf(word) });
+                                                        range = new Range(position, position.translate(0, word.length));
+                                                    }
 
-                                    let containerName = `${lineMatch[2]} : ${lineMatch[4].split(' ')[0]}`;
-                                    results.push(new SymbolInformation(word, kind, containerName, new Location(Uri.file(filepath), range)));
+                                                    let containerName = `${lineMatch[2]} : ${lineMatch[4].split(' ')[0]}`;
+                                                    results.push(new SymbolInformation(word, kind, containerName, new Location(Uri.file(filepath), range)));
+                                                }
+                                            }
+                                            if (matchCount > 0) {
+                                                this.devLog(`[Symbol] ✓ Found ${matchCount} symbols (fallback)`);
+                                            }
+                                            success = true; // 即使是简化模式也算成功
+                                        } catch (fallbackErr: any) {
+                                            this.devLog(`[Symbol] ✗ Fallback failed`);
+                                            // 即使失败也继续处理下一个模式，不要让一个模式的失败影响其他模式
+                                            break;
+                                        }
+                                    }
                                 }
                             }
                         }
                         catch (err: any) {
-                            console.error(`Error searching in ${folder.name}:`, err.message);
+                            this.devLog(`[Symbol] Error: ${err.message}`);
                         }
                     }
                 }

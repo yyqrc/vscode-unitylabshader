@@ -1241,40 +1241,40 @@ export var intrinsicfunctions: IEntries = {
 
 export var preprocessors: IEntries = {
     DEFINE: {
-        description: 'Preprocessor directive that defines a constant or a macro.',
+        description: 'Preprocessor directive that defines a constant or a macro.\n\n预处理器指令，用于定义常量或宏。',
     },
     ERROR: {
-        description: 'Preprocessor directive that produces compiler-time error messages.',
+        description: 'Preprocessor directive that produces compiler-time error messages.\n\n预处理器指令，用于生成编译时错误消息。',
     },
     IF: {
-        description: 'Preprocessor directives that control compilation of portions of a source file.',
+        description: 'Preprocessor directives that control compilation of portions of a source file.\n\n预处理器指令，用于控制源文件部分内容的编译。',
     },
     ELIF: {
-        description: 'Preprocessor directives that control compilation of portions of a source file.',
+        description: 'Preprocessor directives that control compilation of portions of a source file.\n\n预处理器指令，用于控制源文件部分内容的编译。',
     },
     ELSE: {
-        description: 'Preprocessor directives that control compilation of portions of a source file.',
+        description: 'Preprocessor directives that control compilation of portions of a source file.\n\n预处理器指令，用于控制源文件部分内容的编译。',
     },
     ENDIF: {
-        description: 'Preprocessor directives that control compilation of portions of a source file.',
+        description: 'Preprocessor directives that control compilation of portions of a source file.\n\n预处理器指令，用于控制源文件部分内容的编译。',
     },
     IFDEF: {
-        description: 'Preprocessor directives that determine whether a specific preprocessor constant or macro is defined.',
+        description: 'Preprocessor directives that determine whether a specific preprocessor constant or macro is defined.\n\n预处理器指令，用于判断特定的预处理器常量或宏是否已定义。',
     },
     IFNDEF: {
-        description: 'Preprocessor directives that determine whether a specific preprocessor constant or macro is defined.',
+        description: 'Preprocessor directives that determine whether a specific preprocessor constant or macro is defined.\n\n预处理器指令，用于判断特定的预处理器常量或宏是否未定义。',
     },
     INCLUDE: {
-        description: 'Preprocessor directive that inserts the contents of the specified file into the source program at the point where the directive appears.',
+        description: 'Preprocessor directive that inserts the contents of the specified file into the source program at the point where the directive appears.\n\n预处理器指令，用于在指令出现的位置将指定文件的内容插入到源程序中。',
     },
     LINE: {
-        description: "Preprocessor directive that sets the compiler's internally-stored line number and filename to the specified values.",
+        description: "Preprocessor directive that sets the compiler's internally-stored line number and filename to the specified values.\n\n预处理器指令，用于将编译器内部存储的行号和文件名设置为指定值。",
     },
     PRAGMA: {
-        description: 'Preprocessor directive that provides machine-specific or operating system-specific features while retaining overall compatibility with the C and C++ languages.',
+        description: 'Preprocessor directive that provides machine-specific or operating system-specific features while retaining overall compatibility with the C and C++ languages.\n\n预处理器指令，用于提供特定于机器或操作系统的功能，同时保持与 C 和 C++ 语言的整体兼容性。',
     },
     UNDEF: {
-        description: 'Preprocessor directive that removes the current definition of a constant or macro that was previously defined using the #define directive.',
+        description: 'Preprocessor directive that removes the current definition of a constant or macro that was previously defined using the #define directive.\n\n预处理器指令，用于移除之前使用 #define 指令定义的常量或宏的当前定义。',
     }
 };
 
