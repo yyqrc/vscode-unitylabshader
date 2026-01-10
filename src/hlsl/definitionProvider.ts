@@ -236,8 +236,161 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
         });
     }
 
+    /**
+     * 搜索 #include 文件
+     */
+    private async searchIncludeFile(includePath: string, currentFilePath: string, rootPath: string): Promise<Location | null> {
+        try {
+            const path = require('path');
+            const fs = require('fs');
+            
+            // 移除引号
+            includePath = includePath.replace(/["<>]/g, '').trim();
+            
+            // 1. 尝试相对于当前文件的路径
+            const currentDir = path.dirname(currentFilePath);
+            let fullPath = path.join(currentDir, includePath);
+            
+            if (fs.existsSync(fullPath)) {
+                return new Location(Uri.file(fullPath), new Position(0, 0));
+            }
+            
+            // 2. 尝试相对于工作区根目录
+            fullPath = path.join(rootPath, includePath);
+            if (fs.existsSync(fullPath)) {
+                return new Location(Uri.file(fullPath), new Position(0, 0));
+            }
+            
+            // 3. 使用 ripgrep 搜索文件名
+            const fileName = path.basename(includePath);
+            const includePattern = '-g *' + this._hlslPattern.join(' -g *');
+            const execOpts = {
+                cwd: rootPath,
+                maxBuffer: 1024 * 1024
+            };
+            
+            try {
+                const output = execSync(`"${rgPath}" ${includePattern} --files --hidden -g "*${fileName}" .`, execOpts);
+                const files = output.toString().split('\n').filter(f => f.trim());
+                
+                if (files.length > 0) {
+                    // 返回第一个匹配的文件
+                    const foundPath = path.join(rootPath, files[0]);
+                    return new Location(Uri.file(foundPath), new Position(0, 0));
+                }
+            } catch (error: any) {
+                // 没有找到文件
+            }
+            
+        } catch (error) {
+            console.error('Error searching include file:', error);
+        }
+        
+        return null;
+    }
+
+    /**
+     * 搜索 FallBack Shader
+     */
+    private async searchFallBackShader(shaderName: string, rootPath: string): Promise<Location[]> {
+        const results: Location[] = [];
+        
+        try {
+            const includePattern = '-g *.shader';
+            const execOpts = {
+                cwd: rootPath,
+                maxBuffer: 1024 * 1024
+            };
+            
+            // 搜索 Shader "ShaderName" 定义
+            const shaderPattern = `^\\s*Shader\\s+"${shaderName}"`;
+            const output = execSync(`"${rgPath}" ${includePattern} --case-sensitive -H --line-number --column --hidden -e "${shaderPattern}" .`, execOpts);
+            
+            const lines = output.toString().split('\n');
+            for (const line of lines) {
+                const lineMatch = /^(?:((?:[a-zA-Z]:)?[^:]*):)?(\d+):(\d+):(.+)/.exec(line);
+                if (lineMatch) {
+                    const filepath = join(rootPath, lineMatch[1]);
+                    const lineNum = parseInt(lineMatch[2]) - 1;
+                    const lineText = lineMatch[4];
+                    
+                    // 找到 Shader 名称的精确位置
+                    const shaderNameMatch = new RegExp(`Shader\\s+"(${shaderName.replace(/\//g, '\\/')})"`, 'i').exec(lineText);
+                    if (shaderNameMatch) {
+                        const startCol = lineText.indexOf(shaderNameMatch[1]);
+                        const endCol = startCol + shaderName.length;
+                        const range = new Range(
+                            new Position(lineNum, startCol),
+                            new Position(lineNum, endCol)
+                        );
+                        results.push(new Location(Uri.file(filepath), range));
+                    }
+                }
+            }
+        } catch (error: any) {
+            if (error.status !== 1) {
+                console.error('Error searching FallBack shader:', error.message);
+            }
+        }
+        
+        return results;
+    }
+
     public provideDefinition(document: TextDocument, position: Position, token: CancellationToken | boolean): Thenable<Definition> {
-        return this.getDefinitionLocations(document, position);
+        return new Promise<Definition>(async (resolve, reject) => {
+            let enable = workspace.getConfiguration('unityshader').get<boolean>('suggest.basic', true);
+            if (!enable) {
+                reject();
+                return;
+            }
+            
+            const line = document.lineAt(position.line);
+            const lineText = line.text;
+            
+            // 1. 检查是否在 #include 行上
+            const includeMatch = /#include\s+["<]([^">]+)[">]/.exec(lineText);
+            if (includeMatch) {
+                const includePath = includeMatch[1];
+                const includeStart = lineText.indexOf(includePath);
+                const includeEnd = includeStart + includePath.length;
+                
+                // 检查光标是否在 include 路径上
+                if (position.character >= includeStart && position.character <= includeEnd) {
+                    if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
+                        const rootPath = workspace.workspaceFolders[0].uri.fsPath;
+                        const location = await this.searchIncludeFile(includePath, document.uri.fsPath, rootPath);
+                        if (location) {
+                            resolve(location);
+                            return;
+                        }
+                    }
+                }
+            }
+            
+            // 2. 检查是否在 FallBack 行上
+            const fallbackMatch = /FallBack\s+"([^"]+)"/.exec(lineText);
+            if (fallbackMatch) {
+                const shaderName = fallbackMatch[1];
+                const shaderStart = lineText.indexOf(shaderName);
+                const shaderEnd = shaderStart + shaderName.length;
+                
+                // 检查光标是否在 Shader 名称上
+                if (position.character >= shaderStart && position.character <= shaderEnd) {
+                    if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
+                        const rootPath = workspace.workspaceFolders[0].uri.fsPath;
+                        const locations = await this.searchFallBackShader(shaderName, rootPath);
+                        if (locations.length > 0) {
+                            resolve(locations);
+                            return;
+                        }
+                    }
+                }
+            }
+            
+            // 3. 默认行为：查找符号定义
+            const result = await this.getDefinitionLocations(document, position);
+            resolve(result);
+        });
     }
 
     public provideImplementation(document: TextDocument, position: Position, token: CancellationToken): Thenable<Definition> {

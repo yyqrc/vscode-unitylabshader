@@ -310,13 +310,27 @@
 ### 5.2 修改定义跳转 (definitionProvider.ts)
 - [x] 确保函数定义跳转正常
 - [x] 确保变量定义跳转正常
-- [x] 确保 #include 文件跳转正常（如有）
+- [x] 添加 #include 文件跳转支持
+- [x] 添加 FallBack Shader 跳转支持
 
 **验收标准**:
 ```
 ✓ 在函数调用处按 F12 可以跳转到函数定义
 ✓ 在变量使用处按 F12 可以跳转到变量定义
+✓ 在 #include "xxx.cginc" 上按 F12 可以跳转到对应文件
+✓ 在 FallBack "Diffuse" 上按 F12 可以跳转到对应 Shader
 ```
+
+**新增功能说明**:
+1. **#include 跳转**:
+   - 支持相对路径（相对于当前文件）
+   - 支持工作区根目录路径
+   - 支持文件名搜索（使用 ripgrep）
+   
+2. **FallBack 跳转**:
+   - 搜索工作区中所有 .shader 文件
+   - 查找匹配的 Shader "xxx" 定义
+   - 支持多个匹配结果
 
 ---
 
@@ -971,4 +985,447 @@ Clamps the specified value within the range of 0 to 1.
 ---
 
 **Phase 9 文档版本**: v1.0  
+**创建日期**: 2026-01-10
+
+---
+
+## 🎮 Phase 10: Unreal Engine Shader 支持 (兼容扩展)
+
+> **设计理念**: Unity 和 Unreal 的 Shader 都基于 HLSL 语法，因此可以在同一个插件中兼容支持。通过智能上下文检测和配置项，为不同引擎提供专属的补全和提示。
+
+### 📋 阶段概览
+
+| 子阶段 | 内容 | 预计工作量 | 优先级 |
+|--------|------|-----------|--------|
+| 10.1 | 文件类型扩展 | 1-2h | 高 |
+| 10.2 | Unreal 材质函数库 | 4-6h | 高 |
+| 10.3 | 自定义节点支持 | 3-4h | 高 |
+| 10.4 | 上下文智能切换 | 2-3h | 中 |
+| 10.5 | Unreal 代码片段 | 2-3h | 中 |
+| 10.6 | Niagara 支持 | 3-4h | 低 |
+
+**总预计工作量**: 15-22h
+
+---
+
+### 10.1 文件类型扩展
+
+#### 10.1.1 添加 Unreal 文件类型支持
+- [ ] 添加 `.usf` (Unreal Shader File) 支持
+- [ ] 添加 `.ush` (Unreal Shader Header) 支持
+- [ ] 添加 `.hlsl` 文件的 Unreal 上下文识别
+- [ ] 更新 package.json 文件关联
+
+**验收标准**:
+```
+✓ 打开 .usf 文件，语言类型显示为 "Unity/Unreal Shader"
+✓ 打开 .ush 文件，语言类型显示为 "Unity/Unreal Shader"
+✓ 插件正常激活，无错误
+```
+
+**修改文件**:
+- `package.json` - 添加文件扩展名关联
+
+---
+
+#### 10.1.2 引擎类型检测
+- [ ] 实现基于文件路径的引擎检测（如包含 "Unreal" 或 "UE" 路径）
+- [ ] 实现基于文件内容的引擎检测（如包含 Unreal 特有的 include）
+- [ ] 添加手动切换引擎类型的配置项
+- [ ] 在状态栏显示当前引擎类型
+
+**验收标准**:
+```
+✓ 打开 Unreal 项目的 Shader 文件，自动识别为 Unreal 模式
+✓ 打开 Unity 项目的 Shader 文件，自动识别为 Unity 模式
+✓ 状态栏显示 "Unity" 或 "Unreal" 标识
+✓ 可以手动切换引擎类型
+```
+
+**新增文件**:
+- `src/common/engineDetector.ts` - 引擎类型检测器
+
+**修改文件**:
+- `src/extension.ts` - 注册引擎检测器和状态栏
+
+---
+
+### 10.2 Unreal 材质函数库
+
+#### 10.2.1 创建 Unreal 材质函数定义
+- [ ] 创建 `src/unreal/unrealMaterialFunctions.ts`
+- [ ] 添加常用材质函数:
+  - **纹理采样**: `Texture2DSample`, `TextureCubeSample`, `TextureObjectSample`
+  - **数学运算**: `Add`, `Subtract`, `Multiply`, `Divide`, `Power`, `SquareRoot`
+  - **插值**: `Lerp`, `Clamp`, `Saturate`, `Smoothstep`
+  - **向量运算**: `DotProduct`, `CrossProduct`, `Normalize`, `Length`
+  - **坐标**: `TextureCoordinate`, `WorldPosition`, `CameraVector`, `PixelNormalWS`
+  - **光照**: `GetMaterialEmissive`, `GetMaterialBaseColor`, `GetMaterialSpecular`
+  - **时间**: `Time`, `PeriodicFunction`, `Sine`, `Cosine`
+  - **噪声**: `Noise`, `VoronoiNoise`, `PerlinNoise`
+  - **颜色**: `Desaturation`, `HSVToRGB`, `RGBToHSV`
+
+**验收标准**:
+```
+✓ 在 Unreal 模式下输入 "Texture2D" 显示 Texture2DSample 补全
+✓ 在 Unreal 模式下输入 "Lerp" 显示材质函数补全
+✓ 补全项包含函数签名和参数说明
+```
+
+**新增文件**:
+- `src/unreal/unrealMaterialFunctions.ts` - Unreal 材质函数定义
+
+**预计工作量**: 3-4h
+
+---
+
+#### 10.2.2 添加 Unreal 内置变量
+- [ ] 添加材质输入变量:
+  - `MaterialFloat`, `MaterialFloat2`, `MaterialFloat3`, `MaterialFloat4`
+  - `Parameters.PrimitiveId`, `Parameters.PerInstanceRandom`
+- [ ] 添加视图变量:
+  - `View.ViewToClip`, `View.WorldToClip`, `View.WorldToView`
+  - `View.ViewOrigin`, `View.ViewForward`, `View.ViewUp`, `View.ViewRight`
+  - `View.RealTime`, `View.GameTime`, `View.DeltaTime`
+- [ ] 添加光照变量:
+  - `ResolvedView.DirectionalLightColor`, `ResolvedView.DirectionalLightDirection`
+  - `ResolvedView.SkyLightColor`
+
+**验收标准**:
+```
+✓ 输入 "View." 显示视图相关变量补全
+✓ 输入 "Parameters." 显示材质参数补全
+✓ 悬停显示变量类型和说明
+```
+
+**修改文件**:
+- `src/unreal/unrealMaterialFunctions.ts` - 添加变量定义
+
+**预计工作量**: 1-2h
+
+---
+
+### 10.3 自定义节点支持
+
+#### 10.3.1 Custom 节点函数识别
+- [ ] 识别 Custom 节点的函数定义模式
+- [ ] 为 Custom 节点提供专用的代码补全
+- [ ] 添加 Custom 节点常用代码片段
+
+**Custom 节点示例**:
+```hlsl
+// Custom 节点输入
+float3 WorldPosition = Parameters.WorldPosition;
+float3 CameraVector = Parameters.CameraVector;
+
+// Custom 节点输出
+return dot(WorldPosition, CameraVector);
+```
+
+**验收标准**:
+```
+✓ 在 Custom 节点代码中输入 "Parameters." 显示可用输入
+✓ 提供 Custom 节点模板代码片段
+```
+
+**新增文件**:
+- `src/unreal/customNodeProvider.ts` - Custom 节点专用提供器
+
+**预计工作量**: 2-3h
+
+---
+
+#### 10.3.2 HLSL Include 路径提示
+- [ ] 识别 Unreal 常用的 include 路径
+- [ ] 提供 include 路径补全:
+  - `/Engine/Private/Common.ush`
+  - `/Engine/Private/MaterialTemplate.ush`
+  - `/Engine/Private/DeferredShadingCommon.ush`
+  - `/Engine/Private/ShadingModels.ush`
+- [ ] 支持 include 文件跳转
+
+**验收标准**:
+```
+✓ 输入 #include "/Engine/" 显示路径补全
+✓ Ctrl+点击 include 路径可以跳转（如果文件存在）
+```
+
+**修改文件**:
+- `src/hlsl/completionProvider.ts` - 添加 include 路径补全
+- `src/hlsl/definitionProvider.ts` - 添加 include 跳转
+
+**预计工作量**: 1-2h
+
+---
+
+### 10.4 上下文智能切换
+
+#### 10.4.1 实现引擎上下文管理器
+- [ ] 创建 `EngineContext` 类管理当前引擎类型
+- [ ] 根据引擎类型动态切换补全源
+- [ ] 根据引擎类型动态切换悬停提示
+- [ ] 根据引擎类型动态切换代码片段
+
+**验收标准**:
+```
+✓ Unity 模式下显示 Unity 特有的函数（如 UnityObjectToClipPos）
+✓ Unreal 模式下显示 Unreal 特有的函数（如 Texture2DSample）
+✓ 切换引擎类型后补全内容立即更新
+```
+
+**新增文件**:
+- `src/common/engineContext.ts` - 引擎上下文管理器
+
+**修改文件**:
+- `src/hlsl/completionProvider.ts` - 集成引擎上下文
+- `src/hlsl/hoverProvider.ts` - 集成引擎上下文
+
+**预计工作量**: 2-3h
+
+---
+
+#### 10.4.2 添加配置项
+- [ ] 添加 `unityshader.engineType` 配置项:
+  - `auto` (自动检测，默认)
+  - `unity` (强制 Unity 模式)
+  - `unreal` (强制 Unreal 模式)
+- [ ] 添加 `unityshader.suggest.unreal` 配置项（启用/禁用 Unreal 补全）
+- [ ] 添加状态栏切换按钮
+
+**验收标准**:
+```
+✓ 设置 engineType 为 "unity" 后只显示 Unity 补全
+✓ 设置 engineType 为 "unreal" 后只显示 Unreal 补全
+✓ 点击状态栏可以快速切换引擎类型
+```
+
+**修改文件**:
+- `package.json` - 添加配置项定义
+- `src/extension.ts` - 注册状态栏按钮
+
+**预计工作量**: 1h
+
+---
+
+### 10.5 Unreal 代码片段
+
+#### 10.5.1 创建 Unreal 代码片段
+- [ ] 添加 Custom 节点模板 (`customnode`)
+- [ ] 添加材质函数模板 (`materialfunction`)
+- [ ] 添加常用材质表达式片段:
+  - 纹理采样 (`texsample`)
+  - Fresnel 效果 (`fresnel`)
+  - 法线混合 (`normalblend`)
+  - 视差映射 (`parallax`)
+  - 顶点动画 (`vertexanim`)
+
+**验收标准**:
+```
+✓ 在 Unreal 模式下输入 "customnode" 生成 Custom 节点模板
+✓ 输入 "fresnel" 生成 Fresnel 效果代码
+```
+
+**修改文件**:
+- `snippets/unityshader.json` - 添加 Unreal 代码片段（或创建新文件）
+
+**预计工作量**: 2-3h
+
+---
+
+### 10.6 Niagara 支持 (可选)
+
+#### 10.6.1 Niagara HLSL 支持
+- [ ] 识别 Niagara 模块脚本
+- [ ] 添加 Niagara 特有的函数补全:
+  - `Particles.Position`, `Particles.Velocity`, `Particles.Color`
+  - `Emitter.Age`, `Emitter.SpawnRate`
+  - `Engine.DeltaTime`, `Engine.Owner.Position`
+- [ ] 添加 Niagara 代码片段
+
+**验收标准**:
+```
+✓ 在 Niagara 脚本中输入 "Particles." 显示粒子属性补全
+✓ 提供 Niagara 模块模板
+```
+
+**新增文件**:
+- `src/unreal/niagaraGlobals.ts` - Niagara 函数定义
+
+**预计工作量**: 3-4h
+
+---
+
+## 📊 Phase 10 进度追踪
+
+| 子阶段 | 状态 | 预计工作量 | 优先级 |
+|--------|------|-----------|--------|
+| 10.1 文件类型扩展 | ⬜ 待开始 | 1-2h | 高 |
+| 10.2 Unreal 材质函数库 | ⬜ 待开始 | 4-6h | 高 |
+| 10.3 自定义节点支持 | ⬜ 待开始 | 3-4h | 高 |
+| 10.4 上下文智能切换 | ⬜ 待开始 | 2-3h | 中 |
+| 10.5 Unreal 代码片段 | ⬜ 待开始 | 2-3h | 中 |
+| 10.6 Niagara 支持 | ⬜ 待开始 | 3-4h | 低 |
+
+**总预计工作量**: 15-22h
+
+---
+
+## 🎯 Phase 10 实施建议
+
+### 推荐实施顺序
+
+1. **第一批（基础支持）**:
+   - 10.1.1 添加 Unreal 文件类型支持
+   - 10.1.2 引擎类型检测
+   - 10.4.2 添加配置项
+
+2. **第二批（核心功能）**:
+   - 10.2.1 创建 Unreal 材质函数定义
+   - 10.2.2 添加 Unreal 内置变量
+   - 10.4.1 实现引擎上下文管理器
+
+3. **第三批（增强功能）**:
+   - 10.3.1 Custom 节点函数识别
+   - 10.3.2 HLSL Include 路径提示
+   - 10.5.1 创建 Unreal 代码片段
+
+4. **第四批（可选功能）**:
+   - 10.6.1 Niagara HLSL 支持
+
+### 技术架构设计
+
+```
+src/
+├── common/
+│   ├── engineDetector.ts      # 引擎类型检测
+│   └── engineContext.ts       # 引擎上下文管理
+├── unity/
+│   ├── unityGlobals.ts        # Unity 定义（已有）
+│   └── urpGlobals.ts          # URP 定义（已有）
+├── unreal/
+│   ├── unrealMaterialFunctions.ts  # Unreal 材质函数
+│   ├── customNodeProvider.ts       # Custom 节点支持
+│   └── niagaraGlobals.ts          # Niagara 支持（可选）
+└── hlsl/
+    ├── completionProvider.ts   # 集成引擎上下文
+    ├── hoverProvider.ts        # 集成引擎上下文
+    └── ...
+```
+
+### 引擎检测策略
+
+#### 1. 基于文件路径检测
+```typescript
+// Unreal 项目特征
+- 包含 "/Engine/Shaders/"
+- 包含 "/Plugins/"
+- 文件扩展名为 .usf 或 .ush
+
+// Unity 项目特征
+- 包含 "/Assets/Shaders/"
+- 包含 "/Packages/"
+- 文件扩展名为 .shader 或 .cginc
+```
+
+#### 2. 基于文件内容检测
+```typescript
+// Unreal 特征
+- 包含 #include "/Engine/Private/"
+- 包含 MaterialFloat、Parameters.
+- 包含 MATERIAL_* 宏
+
+// Unity 特征
+- 包含 Shader "xxx"
+- 包含 CGPROGRAM/ENDCG
+- 包含 UNITY_MATRIX_*
+```
+
+#### 3. 用户手动指定
+```json
+// .vscode/settings.json
+{
+  "unityshader.engineType": "unreal"  // 或 "unity" 或 "auto"
+}
+```
+
+### 兼容性考虑
+
+1. **共享的 HLSL 基础**:
+   - 保留现有的 HLSL 内置函数补全（abs, lerp, dot 等）
+   - 这些函数在 Unity 和 Unreal 中都可用
+
+2. **引擎特有的功能**:
+   - Unity: UnityObjectToClipPos, UNITY_MATRIX_MVP 等
+   - Unreal: Texture2DSample, Parameters.WorldPosition 等
+
+3. **智能过滤**:
+   - 在 Unity 模式下隐藏 Unreal 特有的补全
+   - 在 Unreal 模式下隐藏 Unity 特有的补全
+   - HLSL 基础函数始终显示
+
+### 测试策略
+
+1. **Unity 项目测试**:
+   - 确保现有功能不受影响
+   - 确保 Unreal 补全不会干扰
+
+2. **Unreal 项目测试**:
+   - 测试 .usf 和 .ush 文件
+   - 测试材质函数补全
+   - 测试 Custom 节点
+
+3. **混合项目测试**:
+   - 测试引擎类型自动切换
+   - 测试手动切换引擎类型
+
+### 文档更新
+
+- [ ] 更新 README.md 说明支持 Unreal
+- [ ] 添加 Unreal 使用示例
+- [ ] 更新配置项说明
+- [ ] 添加引擎切换说明
+
+---
+
+## 📝 Unreal 材质函数参考
+
+### 常用材质表达式对应的 HLSL 函数
+
+| 材质表达式 | HLSL 函数 | 说明 |
+|-----------|----------|------|
+| Texture Sample | Texture2DSample | 纹理采样 |
+| Add | + | 加法 |
+| Multiply | * | 乘法 |
+| Lerp | lerp | 线性插值 |
+| Dot Product | dot | 点积 |
+| Cross Product | cross | 叉积 |
+| Normalize | normalize | 归一化 |
+| Power | pow | 幂运算 |
+| Fresnel | 自定义 | 菲涅尔效果 |
+| Time | View.RealTime | 时间 |
+| World Position | Parameters.WorldPosition | 世界坐标 |
+| Camera Vector | Parameters.CameraVector | 相机向量 |
+
+### Unreal 常用 Include 文件
+
+```hlsl
+// 通用
+#include "/Engine/Private/Common.ush"
+
+// 材质
+#include "/Engine/Private/MaterialTemplate.ush"
+
+// 延迟渲染
+#include "/Engine/Private/DeferredShadingCommon.ush"
+
+// 光照模型
+#include "/Engine/Private/ShadingModels.ush"
+
+// 后处理
+#include "/Engine/Private/PostProcessCommon.ush"
+```
+
+---
+
+**Phase 10 文档版本**: v1.0  
 **创建日期**: 2026-01-10

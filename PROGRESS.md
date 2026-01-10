@@ -24,7 +24,25 @@
 
 ## 🔧 最新修复记录 (2026-01-10)
 
-### 1. HLSL 函数描述中英文换行显示
+### 1. 新增 #include 文件跳转功能
+- **功能**: 支持在 `#include "xxx.cginc"` 上按 F12 或 Cmd+点击跳转到对应文件
+- **实现策略**:
+  1. 优先尝试相对于当前文件的路径
+  2. 尝试相对于工作区根目录的路径
+  3. 使用 ripgrep 搜索文件名
+- **影响文件**: `src/hlsl/definitionProvider.ts`
+- **状态**: ✅ 已完成
+
+### 2. 新增 FallBack Shader 跳转功能
+- **功能**: 支持在 `FallBack "Diffuse"` 上按 F12 或 Cmd+点击跳转到对应的 Shader 定义
+- **实现策略**:
+  1. 使用 ripgrep 搜索工作区中所有 .shader 文件
+  2. 查找匹配的 `Shader "xxx"` 定义
+  3. 支持多个匹配结果（如有多个同名 Shader）
+- **影响文件**: `src/hlsl/definitionProvider.ts`
+- **状态**: ✅ 已完成
+
+### 3. HLSL 函数描述中英文换行显示
 - **问题**: 中英文描述在同一行显示，不易阅读
 - **解决**: 将所有函数描述中的 `\n` 改为 `\n\n`，实现中英文分行显示
 - **影响文件**: `src/hlsl/hlslGlobals.ts`
@@ -95,6 +113,8 @@
 - 宏定义跳转（支持多个定义）
 - 跨文件跳转
 - 优先级排序（已打开文件优先）
+- **#include 文件跳转**（支持相对路径、工作区路径、文件名搜索）
+- **FallBack Shader 跳转**（支持跳转到降级 Shader 定义）
 
 #### 7. 代码片段
 - 基础 Shader 模板（shader, unlitshader, surfshader）

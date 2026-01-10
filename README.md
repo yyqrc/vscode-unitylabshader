@@ -43,6 +43,8 @@ code --install-extension unityshader-x.x.x.vsix
 - 支持跨文件跳转（如 `.cginc` 文件中的函数）
 - 支持宏定义跳转（如 `ALPHA_FUNC`）
 - 支持带修饰符的函数（如 `inline`、`static`）
+- 支持 `#include` 文件跳转（如 `#include "Common.cginc"`）
+- 支持 `FallBack` Shader 跳转（如 `FallBack "Diffuse"`）
 
 #### 代码折叠
 点击行号左侧的折叠箭头，折叠代码块：
@@ -85,6 +87,44 @@ code --install-extension unityshader-x.x.x.vsix
 | `unityshader.suggest.unity` | `true` | 启用/禁用 Unity 内置补全 |
 | `unityshader.suggest.urp` | `true` | 启用/禁用 URP 补全 |
 | `unityshader.openDocOnSide` | `true` | 在侧边打开文档链接 |
+
+## 开发
+
+### 构建和打包
+
+本项目提供自动版本管理和打包脚本：
+
+```bash
+# 日常修复打包（patch 版本：0.1.0 → 0.1.1）
+npm run build
+
+# 新功能发布（minor 版本：0.1.0 → 0.2.0）
+npm run build:minor
+
+# 重大更新（major 版本：0.1.0 → 1.0.0）
+npm run build:major
+```
+
+详细说明请查看 [BUILD_GUIDE.md](./BUILD_GUIDE.md)
+
+### 开发脚本
+
+```bash
+# 安装依赖
+npm install
+
+# 开发模式（监听文件变化）
+npm run watch
+
+# 编译
+npm run compile
+
+# 类型检查
+npm run check-types
+
+# 代码检查
+npm run lint
+```
 
 ## 致谢
 

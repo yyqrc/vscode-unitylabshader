@@ -2,7 +2,7 @@
   "name": "unityshader",
   "displayName": "Unity Shader",
   "description": "Unity Shader language support for VS Code - syntax highlighting, code completion, hover tips and more for .shader, .cginc, .hlsl, .compute files",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -100,7 +100,11 @@
     "watch": "node esbuild.js --watch",
     "package": "npm run check-types && node esbuild.js --production",
     "check-types": "tsc --noEmit",
-    "lint": "eslint src --ext ts"
+    "lint": "eslint src --ext ts",
+    "build": "node scripts/build-and-package.js patch",
+    "build:minor": "node scripts/build-and-package.js minor",
+    "build:major": "node scripts/build-and-package.js major",
+    "version:bump": "node scripts/bump-version.js"
   },
   "devDependencies": {
     "@types/node": "^18.19.130",
