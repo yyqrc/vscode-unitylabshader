@@ -86,7 +86,6 @@ code --install-extension unityshader-x.x.x.vsix
 | `unityshader.suggest.basic` | `true` | 启用/禁用 HLSL 基础补全 |
 | `unityshader.suggest.unity` | `true` | 启用/禁用 Unity 内置补全 |
 | `unityshader.suggest.urp` | `true` | 启用/禁用 URP 补全 |
-| `unityshader.openDocOnSide` | `true` | 在侧边打开文档链接 |
 
 ## 开发
 

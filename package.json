@@ -1,7 +1,7 @@
 {
   "name": "unityshader",
-  "displayName": "Unity Shader",
-  "description": "Unity Shader language support for VS Code - syntax highlighting, code completion, hover tips and more for .shader, .cginc, .hlsl, .compute files",
+  "displayName": "Unity/Unreal Shader",
+  "description": "Unity and Unreal Shader language support for VS Code - syntax highlighting, code completion, hover tips and more for .shader, .cginc, .hlsl, .compute, .usf, .ush files",
   "version": "0.1.2",
   "engines": {
     "vscode": "^1.87.0"
@@ -11,12 +11,15 @@
   ],
   "keywords": [
     "unity",
+    "unreal",
     "shader",
     "shaderlab",
     "hlsl",
     "cg",
     "cginc",
-    "compute shader"
+    "compute shader",
+    "usf",
+    "ush"
   ],
   "bugs": {
     "url": "https://github.com/yyqrc/vscode-unityshader/issues"
@@ -33,7 +36,7 @@
       {
         "id": "unityshader",
         "aliases": [
-          "Unity Shader",
+          "Unity/Unreal Shader",
           "ShaderLab",
           "unityshader"
         ],
@@ -43,7 +46,9 @@
           ".hlsl",
           ".hlsli",
           ".compute",
-          ".cg"
+          ".cg",
+          ".usf",
+          ".ush"
         ],
         "configuration": "./language-configuration.json"
       }
@@ -74,10 +79,35 @@
           "default": true,
           "description": "Enable/disable URP (Universal Render Pipeline) suggestions."
         },
-        "unityshader.openDocOnSide": {
+        "unityshader.engineType": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "unity",
+            "unreal"
+          ],
+          "default": "auto",
+          "description": "Shader engine type: auto (auto-detect), unity (Unity Engine), unreal (Unreal Engine)."
+        },
+        "unityshader.analysis.semanticAnalysis": {
           "type": "boolean",
           "default": true,
-          "description": "Open documentation links on the side panel."
+          "description": "Enable/disable semantic analysis (variable type inference, unused variable detection)."
+        },
+        "unityshader.analysis.variantAnalysis": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable shader variant analysis."
+        },
+        "unityshader.analysis.maxVariantsWarning": {
+          "type": "number",
+          "default": 256,
+          "description": "Maximum number of shader variants before showing a warning."
+        },
+        "unityshader.analysis.maxVariantsError": {
+          "type": "number",
+          "default": 512,
+          "description": "Maximum number of shader variants before showing an error."
         }
       }
     },
@@ -85,6 +115,10 @@
       {
         "command": "unityshader.openDoc",
         "title": "Unity Shader: Open Documentation"
+      },
+      {
+        "command": "unityshader.switchEngine",
+        "title": "Unity Shader: Switch Engine Type"
       }
     ],
     "snippets": [

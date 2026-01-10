@@ -13,6 +13,8 @@ import {
     UnityMacro,
     ShaderLabKeyword
 } from '../unity/unityGlobals';
+import { SemanticAnalyzer } from '../analysis/semanticAnalyzer';
+import { VariantAnalyzer } from '../analysis/variantAnalyzer';
 import {
     urpBuiltinVariables,
     urpBuiltinFunctions,
@@ -61,13 +63,21 @@ export function textToMarkedString(text: string): MarkdownString {
 }
 
 export default class HLSLHoverProvider implements HoverProvider {
+    private semanticAnalyzer: SemanticAnalyzer;
+    private variantAnalyzer: VariantAnalyzer;
+
+    constructor(semanticAnalyzer: SemanticAnalyzer, variantAnalyzer: VariantAnalyzer) {
+        this.semanticAnalyzer = semanticAnalyzer;
+        this.variantAnalyzer = variantAnalyzer;
+    }
 
     private getSymbols(document: TextDocument): Thenable<SymbolInformation[]> {
         return commands.executeCommand<SymbolInformation[]>('vscode.executeDocumentSymbolProvider', document.uri);
     }
 
     dispose() {
-        // No resources to dispose
+        this.semanticAnalyzer.dispose();
+        this.variantAnalyzer.dispose();
     }
 
     public async provideHover(document: TextDocument, position: Position, token: CancellationToken): Promise<Hover | null | undefined> {
@@ -80,16 +90,42 @@ export default class HLSLHoverProvider implements HoverProvider {
             return null;
         }
 
+        // ============================================================================
+        // Shader 变体分析悬停提示
+        // ============================================================================
+        const line = document.lineAt(position.line).text;
+        if (line.match(/^\s*#pragma\s+(multi_compile|shader_feature)/)) {
+            const variantDetails = this.variantAnalyzer.getVariantDetails(document, position.line);
+            if (variantDetails) {
+                return new Hover(new MarkdownString(variantDetails));
+            }
+        }
+
         let wordRange = document.getWordRangeAtPosition(position);
         if (!wordRange) {
             return null;
         }
 
         let name = document.getText(wordRange);
+        
         let backchar = '';
         if(wordRange.start.character > 0) {
             let backidx = wordRange.start.translate({characterDelta: -1});
             backchar = backidx.character < 0 ? '' : document.getText(new Range(backidx, wordRange.start));
+        }
+        
+        // ============================================================================
+        // 变量类型推断悬停提示（优先级最高，排除预处理器）
+        // ============================================================================
+        if (backchar !== '#') {
+            const varType = this.semanticAnalyzer.getVariableType(name, position.line);
+            if (varType) {
+                let contents: MarkdownString[] = [];
+                const signature = new MarkdownString(`(*variable*) \`${varType}\` **${name}**`);
+                contents.push(signature);
+                contents.push(new MarkdownString('类型推断 (Type Inference)'));
+                return new Hover(contents, wordRange);
+            }
         }
 
         // ============================================================================

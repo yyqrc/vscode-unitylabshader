@@ -17,12 +17,168 @@
 | Phase 6: 代码片段 | ✅ 已完成 | 100% |
 | Phase 7: URP 支持 | ✅ 已完成 | 100% |
 | Phase 8: 优化与发布 | ✅ 已完成 | 100% |
+| Phase 10: Unreal Shader 支持 | ✅ 已完成 | 100% |
+| Phase 9.1: 智能代码分析 | ✅ 已完成 | 100% |
+| Phase 9.2: 代码重构功能 | ✅ 已完成 | 100% |
 
-**总体进度**: ✅ 核心功能已完成
+**总体进度**: ✅ 核心功能已完成（Unity + Unreal + 智能分析 + 代码重构）
 
 ---
 
-## 🔧 最新修复记录 (2026-01-11)
+### 5. Phase 9.1: 智能代码分析完成
+- **实现目标**: 提供语义分析和 Shader 变体分析功能
+- **核心功能**:
+  1. **语义分析**: 变量类型推断、未使用变量/函数检测
+  2. **Shader 变体分析**: 变体数量统计、警告和优化建议
+- **实现细节**:
+  - 创建 `src/analysis/semanticAnalyzer.ts` - 语义分析器（350+ 行）
+  - 创建 `src/analysis/variantAnalyzer.ts` - 变体分析器（250+ 行）
+  - 修改 `src/hlsl/hoverProvider.ts` - 集成类型推断和变体详情
+  - 修改 `src/extension.ts` - 注册分析器和事件监听
+- **语义分析功能**:
+  - 变量类型推断：悬停显示推断的类型
+  - 未使用变量检测：灰色下划线提示
+  - 未使用函数检测：灰色下划线提示
+  - 作用域分析：支持全局/局部/参数变量
+  - 智能排除：入口函数（vert/frag）和下划线变量不标记
+- **变体分析功能**:
+  - 变体数量统计：分析 multi_compile 和 shader_feature
+  - 变体数量显示：pragma 行末尾显示数量和颜色
+  - 变体警告：超过 256 显示警告，超过 512 显示错误
+  - 详情悬停：显示所有选项、总数和优化建议
+  - 颜色编码：灰色（正常）、橙色（警告）、红色（错误）
+- **用户体验提升**:
+  - ✅ 实时分析，无需手动触发
+  - ✅ 非侵入式提示（Hint 级别）
+  - ✅ 中英双语提示信息
+  - ✅ 智能排除常见误报
+- **Bug 修复记录**:
+  - ✅ 修复了 color 悬停显示语义而非类型的问题
+  - ✅ 修复了变体分析将注释计入选项的问题
+  - ✅ 修复了纯 HLSL 代码不被分析的问题
+  - ✅ 添加了详细的调试日志辅助排查
+- **配置选项**:
+  - `unityshader.analysis.semanticAnalysis.enabled` - 启用/禁用语义分析
+  - `unityshader.analysis.variantAnalysis.enabled` - 启用/禁用变体分析
+  - `unityshader.analysis.variantWarningThreshold` - 变体警告阈值（默认 256）
+  - `unityshader.analysis.variantErrorThreshold` - 变体错误阈值（默认 512）
+- **后续优化计划** (低优先级):
+  - 性能优化：大文件增量分析、分析结果缓存
+  - 功能增强：类型不匹配检测、参数数量错误检测
+  - 功能增强：嵌套作用域支持、跨文件变体分析
+  - 配置增强：可配置的分析范围和警告级别
+- **影响文件**: 
+  - `src/analysis/semanticAnalyzer.ts` (新建)
+  - `src/analysis/variantAnalyzer.ts` (新建)
+  - `src/hlsl/hoverProvider.ts` (修改)
+  - `src/extension.ts` (修改)
+  - `package.json` (添加配置项)
+- **状态**: ✅ 已完成
+- **详细说明**: 参见 [PHASE_9.1_TEST_GUIDE.md](PHASE_9.1_TEST_GUIDE.md)
+
+---
+
+### 6. Phase 9.2: 代码重构功能完成
+- **实施日期**: 2026-01-11
+- **实现目标**: 提供重命名符号和代码格式化功能
+- **核心功能**:
+  1. **重命名符号**: 智能重命名函数和变量，自动更新所有引用
+  2. **代码格式化**: 整个文档和选区的代码格式化
+- **实现细节**:
+  - 创建 `src/hlsl/renameProvider.ts` - 重命名提供器（250+ 行）
+  - 创建 `src/hlsl/formattingProvider.ts` - 格式化提供器（200+ 行）
+  - 修改 `src/extension.ts` - 注册新功能
+- **重命名功能**:
+  - 符号验证：检查关键字和内置函数
+  - 作用域分析：自动检测符号作用域（全局/函数/结构体）
+  - 引用查找：使用正则表达式查找所有引用
+  - 用户体验：F2 快捷键、重命名预览、错误提示
+- **格式化功能**:
+  - 缩进管理：自动计算大括号深度
+  - ShaderLab 支持：识别 ShaderLab 关键字和属性
+  - 注释保护：保持多行注释原样
+  - 格式化选项：支持整个文档和选区格式化
+- **快捷键**:
+  - 重命名：F2
+  - 格式化文档：Shift + Alt + F (Windows/Linux) / Shift + Option + F (macOS)
+  - 格式化选区：Ctrl+K Ctrl+F (Windows/Linux) / Cmd+K Cmd+F (macOS)
+- **已知限制**:
+  - 重命名：当前仅支持当前文件内的重命名
+  - 格式化：不支持运算符格式化和对齐
+- **后续优化计划** (低优先级):
+  - 重命名：支持跨文件重命名、宏定义重命名
+  - 格式化：添加运算符格式化、变量声明对齐、注释对齐
+- **影响文件**: 
+  - `src/hlsl/renameProvider.ts` (新建)
+  - `src/hlsl/formattingProvider.ts` (新建)
+  - `src/extension.ts` (修改)
+- **状态**: ✅ 已完成
+- **详细说明**: 参见 [PHASE_9.2_IMPLEMENTATION.md](PHASE_9.2_IMPLEMENTATION.md)
+
+---
+### 4. Phase 10: UnrealShader 的支持完成- **实现目标**: 在同一插件中兼容支持 Unity 和 Unreal Engine 的 Shader 开发
+- **核心功能**:
+  1. **文件类型扩展**: 支持 `.usf` 和 `.ush` 文件
+  2. **引擎检测**: 自动识别 Unity/Unreal 项目并切换上下文
+  3. **Unreal 函数库**: 添加 50+ 个 Unreal 材质函数和变量
+  4. **智能补全**: 根据引擎类型动态切换补全内容
+  5. **状态栏显示**: 显示当前引擎类型并支持手动切换
+- **实现细节**:
+  - 创建 `src/common/engineDetector.ts` - 引擎类型检测器
+  - 创建 `src/common/engineContext.ts` - 引擎上下文管理器
+  - 创建 `src/unreal/unrealGlobals.ts` - Unreal 函数和变量定义
+  - 修改 `src/hlsl/completionProvider.ts` - 集成引擎上下文
+  - 修改 `src/hlsl/definitionProvider.ts` - 支持 Unreal include 跳转
+- **Unreal 函数库内容**:
+  - 材质函数: Texture2DSample, MaterialFloat, Parameters 等
+  - 视图变量: View.WorldToClip, View.ViewOrigin, View.RealTime 等
+  - 光照变量: ResolvedView.DirectionalLightColor 等
+  - 内置宏: MATERIAL_*, FEATURE_LEVEL_* 等
+- **用户体验提升**:
+  - ✅ 自动识别项目类型，无需手动配置
+  - ✅ 状态栏显示当前引擎，一目了然
+  - ✅ 支持手动切换引擎类型
+  - ✅ Unity 和 Unreal 补全互不干扰
+- **影响文件**: 
+  - `package.json` - 添加 .usf/.ush 文件支持
+  - `src/common/engineDetector.ts` (新建)
+  - `src/common/engineContext.ts` (新建)
+  - `src/unreal/unrealGlobals.ts` (新建)
+  - `src/hlsl/completionProvider.ts` - 集成引擎检测
+  - `src/hlsl/definitionProvider.ts` - 支持 Unreal include
+  - `src/extension.ts` - 注册引擎上下文和状态栏
+- **状态**: ✅ 已完成
+- **详细说明**: 参见 [UNREAL_SUPPORT.md](UNREAL_SUPPORT.md)
+- **测试目录**: `/Users/ashiqi/Documents/UGit/EngineSource/Engine/Shaders`
+
+### 3. 补全列表优先级排序优化
+- **优化目标**: 让补全列表按匹配度智能排序，越匹配的越靠前
+- **实现方案**:
+  1. 完全匹配（大小写一致）→ 优先级最高
+  2. 完全匹配（忽略大小写）→ 优先级次高
+  3. 前缀匹配（大小写一致）→ 优先级中等
+  4. 前缀匹配（忽略大小写）→ 优先级较低
+  5. 驼峰匹配 → 优先级低
+  6. 包含匹配 → 优先级最低
+- **成员访问优化**:
+  - 支持大小写不敏感的成员访问（如 `view.` 和 `View.` 都能正确匹配）
+  - 只显示对应对象的成员，过滤无关项
+  - 成员名匹配度排序
+- **影响文件**: `src/hlsl/completionProvider.ts`
+- **状态**: ✅ 已完成
+- **详细说明**: 参见 [COMPLETION_SORT_FIX.md](COMPLETION_SORT_FIX.md)
+
+### 2. Include 跳转路径解析优化
+- **问题**: 以 `/` 开头的绝对路径（如 `#include "/Engine/Public/Platform.ush"`）跳转错误
+- **根本原因**: 没有正确处理 Unreal 引擎的绝对路径规则
+- **解决方案**:
+  1. 识别以 `/` 开头的路径为引擎根目录的绝对路径
+  2. 在工作区根目录下搜索对应文件
+  3. 支持多个工作区的情况
+- **影响文件**: `src/hlsl/definitionProvider.ts`
+- **状态**: ✅ 已完成
+
+### 1. Preprocessors 中英双文翻译
 
 ### 1. Preprocessors 中英双文翻译
 - **更新目标**: 将预处理器指令的描述翻译成中英双文格式

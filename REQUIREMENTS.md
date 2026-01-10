@@ -221,11 +221,6 @@ GetMainLight(), GetAdditionalLight(), TransformObjectToHClip(), TransformObjectT
     "default": false,
     "description": "是否启用 HDRP 相关代码建议"
   },
-  "unityshader.openDocOnSide": {
-    "type": "boolean",
-    "default": true,
-    "description": "是否在侧边打开文档链接"
-  },
   "unityshader.format.enable": {
     "type": "boolean",
     "default": false,

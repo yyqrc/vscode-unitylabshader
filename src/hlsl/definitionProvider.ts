@@ -3,6 +3,7 @@ import { DefinitionProvider, ImplementationProvider, TypeDefinitionProvider, Sym
 import { execSync } from 'child_process';
 import { join } from 'path';
 import { getRgPath } from '../common';
+import { EngineContextManager, EngineType } from '../common/engineContext';
 
 export default class HLSLDefinitionProvider implements DefinitionProvider, ImplementationProvider, TypeDefinitionProvider {
 
@@ -26,7 +27,7 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
     }
 
     // 支持的文件扩展名
-    private _hlslPattern = ['.hlsl', '.hlsli', '.fx', '.fxh', '.vsh', '.psh', '.cginc', '.compute', '.shader', '.cg'];
+    private _hlslPattern = ['.hlsl', '.hlsli', '.fx', '.fxh', '.vsh', '.psh', '.cginc', '.compute', '.shader', '.cg', '.usf', '.ush'];
 
     /**
      * 搜索宏定义
@@ -301,21 +302,54 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             // 移除引号
             includePath = includePath.replace(/["<>]/g, '').trim();
             
-            // 1. 尝试相对于当前文件的路径
+            this.devLog(`[Include] Searching: "${includePath}"`);
+            this.devLog(`[Include] Current file: ${currentFilePath}`);
+            this.devLog(`[Include] Root path: ${rootPath}`);
+            
+            // 1. 处理 Unreal 的虚拟路径（以 /Engine/ 开头）
+            // 例如：/Engine/Public/Platform.ush -> {ShaderRoot}/Public/Platform.ush
+            if (includePath.startsWith('/Engine/')) {
+                // 移除 /Engine/ 前缀
+                const relativePath = includePath.substring('/Engine/'.length);
+                
+                // 尝试在 Shaders 目录下查找
+                // 可能的路径：
+                // 1. {workspace}/Engine/Shaders/{relativePath}
+                // 2. {workspace}/Shaders/{relativePath}
+                const possiblePaths = [
+                    path.join(rootPath, 'Engine', 'Shaders', relativePath),
+                    path.join(rootPath, 'Shaders', relativePath),
+                    path.join(rootPath, relativePath)
+                ];
+                
+                for (const fullPath of possiblePaths) {
+                    this.devLog(`[Include] Trying: ${fullPath}`);
+                    if (fs.existsSync(fullPath)) {
+                        this.devLog(`[Include] ✓ Found: ${fullPath}`);
+                        return new Location(Uri.file(fullPath), new Position(0, 0));
+                    }
+                }
+            }
+            
+            // 2. 尝试相对于当前文件的路径
             const currentDir = path.dirname(currentFilePath);
             let fullPath = path.join(currentDir, includePath);
             
+            this.devLog(`[Include] Trying relative: ${fullPath}`);
             if (fs.existsSync(fullPath)) {
+                this.devLog(`[Include] ✓ Found: ${fullPath}`);
                 return new Location(Uri.file(fullPath), new Position(0, 0));
             }
             
-            // 2. 尝试相对于工作区根目录
+            // 3. 尝试相对于工作区根目录
             fullPath = path.join(rootPath, includePath);
+            this.devLog(`[Include] Trying root: ${fullPath}`);
             if (fs.existsSync(fullPath)) {
+                this.devLog(`[Include] ✓ Found: ${fullPath}`);
                 return new Location(Uri.file(fullPath), new Position(0, 0));
             }
             
-            // 3. 使用 ripgrep 搜索文件名
+            // 4. 使用 ripgrep 搜索文件名
             const fileName = path.basename(includePath);
             const includePattern = '-g *' + this._hlslPattern.join(' -g *');
             const execOpts = {
@@ -324,18 +358,35 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             };
             
             try {
+                this.devLog(`[Include] Searching by filename: ${fileName}`);
                 const output = execSync(`"${getRgPath()}" ${includePattern} --files --hidden -g "*${fileName}" .`, execOpts);
                 const files = output.toString().split('\n').filter(f => f.trim());
                 
                 if (files.length > 0) {
-                    // 返回第一个匹配的文件
-                    const foundPath = path.join(rootPath, files[0]);
+                    // 优先选择路径最匹配的文件
+                    let bestMatch = files[0];
+                    const includeDir = path.dirname(includePath);
+                    
+                    // 如果 include 路径包含目录，尝试找到最匹配的文件
+                    if (includeDir && includeDir !== '.') {
+                        for (const file of files) {
+                            if (file.includes(includeDir)) {
+                                bestMatch = file;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    const foundPath = path.join(rootPath, bestMatch);
+                    this.devLog(`[Include] ✓ Found by search: ${foundPath}`);
                     return new Location(Uri.file(foundPath), new Position(0, 0));
                 }
             } catch (error: any) {
                 // 没有找到文件
+                this.devLog(`[Include] Search failed: ${error.message}`);
             }
             
+            this.devLog(`[Include] ✗ Not found`);
         } catch (error) {
             this.devLog(`[Include] Error: ${error}`);
         }
@@ -444,25 +495,31 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             }
             
             // 2. 检查是否在 FallBack 行上（不区分大小写）
-            const fallbackMatch = /FallBack\s+"([^"]+)"/i.exec(lineText);
-            if (fallbackMatch) {
-                const shaderName = fallbackMatch[1];
-                const shaderStart = lineText.indexOf(shaderName);
-                const shaderEnd = shaderStart + shaderName.length;
-                
-                // 检查光标是否在 Shader 名称上
-                if (position.character >= shaderStart && position.character <= shaderEnd) {
-                    if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
-                        const rootPath = workspace.workspaceFolders[0].uri.fsPath;
-                        const locations = await this.searchFallBackShader(shaderName, rootPath);
-                        if (locations.length > 0) {
-                            resolve(locations);
-                            return;
+            // 注意：FallBack 是 Unity ShaderLab 特有的功能，只在 Unity 模式下启用
+            const engineContext = EngineContextManager.getInstance();
+            const isUnityMode = engineContext.isUnityMode();
+            
+            if (isUnityMode) {
+                const fallbackMatch = /FallBack\s+"([^"]+)"/i.exec(lineText);
+                if (fallbackMatch) {
+                    const shaderName = fallbackMatch[1];
+                    const shaderStart = lineText.indexOf(shaderName);
+                    const shaderEnd = shaderStart + shaderName.length;
+                    
+                    // 检查光标是否在 Shader 名称上
+                    if (position.character >= shaderStart && position.character <= shaderEnd) {
+                        if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
+                            const rootPath = workspace.workspaceFolders[0].uri.fsPath;
+                            const locations = await this.searchFallBackShader(shaderName, rootPath);
+                            if (locations.length > 0) {
+                                resolve(locations);
+                                return;
+                            }
                         }
+                        // FallBack 未找到时直接返回，不继续搜索符号
+                        reject();
+                        return;
                     }
-                    // FallBack 未找到时直接返回，不继续搜索符号
-                    reject();
-                    return;
                 }
             }
             

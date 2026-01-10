@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 
 import { setHlslExtensions, setRgPath } from './common';
+import { EngineContextManager } from './common/engineContext';
 
 import HLSLHoverProvider from './hlsl/hoverProvider';
 import HLSLCompletionItemProvider from './hlsl/completionProvider';
@@ -12,6 +13,10 @@ import HLSLSymbolProvider from './hlsl/symbolProvider';
 import HLSLDefinitionProvider from './hlsl/definitionProvider';
 import HLSLReferenceProvider from './hlsl/referenceProvider';
 import HLSLFoldingRangeProvider from './hlsl/foldingProvider';
+import HLSLRenameProvider from './hlsl/renameProvider';
+import HLSLFormattingProvider from './hlsl/formattingProvider';
+import { SemanticAnalyzer } from './analysis/semanticAnalyzer';
+import { VariantAnalyzer } from './analysis/variantAnalyzer';
 
 // Unity Shader 支持的文件类型
 const documentSelector = [
@@ -38,6 +43,11 @@ export function activate(context: vscode.ExtensionContext) {
     // 控制台输出激活信息
     console.log('Unity Shader extension is now active!');
 
+    // 初始化引擎上下文管理器
+    const engineContext = EngineContextManager.getInstance();
+    engineContext.initialize(context);
+    console.log('Engine context manager initialized');
+
     // 初始化 ripgrep 路径（使用 VS Code 内置的 ripgrep）
     const rgPath = getVscodeRgPath();
     setRgPath(rgPath);
@@ -51,11 +61,17 @@ export function activate(context: vscode.ExtensionContext) {
         }
     }
 
-    // 注册 Hover 提供器（需要保存实例以确保命令正确注册）
-    const hoverProvider = new HLSLHoverProvider();
+    // 初始化语义分析器和变体分析器
+    const semanticAnalyzer = new SemanticAnalyzer();
+    const variantAnalyzer = new VariantAnalyzer();
+    context.subscriptions.push(semanticAnalyzer);
+    context.subscriptions.push(variantAnalyzer);
+
+    // 注册 Hover 提供器（传入analyzer实例）
+    const hoverProvider = new HLSLHoverProvider(semanticAnalyzer, variantAnalyzer);
     context.subscriptions.push(vscode.languages.registerHoverProvider(documentSelector, hoverProvider));
     context.subscriptions.push(hoverProvider);
-    
+
     // 注册代码补全提供器
     context.subscriptions.push(vscode.languages.registerCompletionItemProvider(documentSelector, new HLSLCompletionItemProvider(), '.'));
     
@@ -78,6 +94,95 @@ export function activate(context: vscode.ExtensionContext) {
 
     // 注册折叠提供器（支持 #if/#else/#endif 分段折叠）
     context.subscriptions.push(vscode.languages.registerFoldingRangeProvider(documentSelector, new HLSLFoldingRangeProvider()));
+
+    // 注册重命名提供器
+    context.subscriptions.push(vscode.languages.registerRenameProvider(documentSelector, new HLSLRenameProvider()));
+
+    // 注册代码格式化提供器
+    const formattingProvider = new HLSLFormattingProvider();
+    context.subscriptions.push(vscode.languages.registerDocumentFormattingEditProvider(documentSelector, formattingProvider));
+    context.subscriptions.push(vscode.languages.registerDocumentRangeFormattingEditProvider(documentSelector, formattingProvider));
+
+    // 监听文档变化，触发语义分析
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeTextDocument(event => {
+            if (event.document.languageId === 'unityshader') {
+                // 检查配置选项
+                const config = vscode.workspace.getConfiguration('unityshader');
+                const enableSemanticAnalysis = config.get<boolean>('analysis.semanticAnalysis', true);
+                const enableVariantAnalysis = config.get<boolean>('analysis.variantAnalysis', true);
+                
+                // 延迟分析，避免频繁触发
+                setTimeout(() => {
+                    if (enableSemanticAnalysis) {
+                        semanticAnalyzer.analyzeDocument(event.document);
+                    }
+                    if (enableVariantAnalysis) {
+                        const editor = vscode.window.activeTextEditor;
+                        if (editor && editor.document === event.document) {
+                            variantAnalyzer.analyzeDocument(event.document, editor);
+                        }
+                    }
+                }, 500);
+            }
+        })
+    );
+
+    // 监听文档打开，触发初始分析
+    context.subscriptions.push(
+        vscode.workspace.onDidOpenTextDocument(document => {
+            if (document.languageId === 'unityshader') {
+                const config = vscode.workspace.getConfiguration('unityshader');
+                const enableSemanticAnalysis = config.get<boolean>('analysis.semanticAnalysis', true);
+                const enableVariantAnalysis = config.get<boolean>('analysis.variantAnalysis', true);
+                
+                if (enableSemanticAnalysis) {
+                    semanticAnalyzer.analyzeDocument(document);
+                }
+                if (enableVariantAnalysis) {
+                    const editor = vscode.window.activeTextEditor;
+                    if (editor && editor.document === document) {
+                        variantAnalyzer.analyzeDocument(document, editor);
+                    }
+                }
+            }
+        })
+    );
+
+    // 监听活动编辑器变化
+    context.subscriptions.push(
+        vscode.window.onDidChangeActiveTextEditor(editor => {
+            if (editor && editor.document.languageId === 'unityshader') {
+                const config = vscode.workspace.getConfiguration('unityshader');
+                const enableSemanticAnalysis = config.get<boolean>('analysis.semanticAnalysis', true);
+                const enableVariantAnalysis = config.get<boolean>('analysis.variantAnalysis', true);
+                
+                if (enableSemanticAnalysis) {
+                    semanticAnalyzer.analyzeDocument(editor.document);
+                }
+                if (enableVariantAnalysis) {
+                    variantAnalyzer.analyzeDocument(editor.document, editor);
+                }
+            }
+        })
+    );
+
+    // 对当前打开的文档进行初始分析
+    if (vscode.window.activeTextEditor) {
+        const document = vscode.window.activeTextEditor.document;
+        if (document.languageId === 'unityshader') {
+            const config = vscode.workspace.getConfiguration('unityshader');
+            const enableSemanticAnalysis = config.get<boolean>('analysis.semanticAnalysis', true);
+            const enableVariantAnalysis = config.get<boolean>('analysis.variantAnalysis', true);
+            
+            if (enableSemanticAnalysis) {
+                semanticAnalyzer.analyzeDocument(document);
+            }
+            if (enableVariantAnalysis) {
+                variantAnalyzer.analyzeDocument(document, vscode.window.activeTextEditor);
+            }
+        }
+    }
 
 }
 

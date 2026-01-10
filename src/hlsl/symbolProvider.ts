@@ -369,7 +369,10 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
                                     success = true;
                                 } catch (execErr: any) {
                                     retryCount++;
-                                    this.devLog(`[Symbol] Retry ${retryCount}/${maxRetries + 1}`);
+                                    // 只在开发模式下输出重试日志
+                                    if (this.isDevelopment()) {
+                                        this.devLog(`[Symbol] Retry ${retryCount}/${maxRetries + 1}`);
+                                    }
                                     
                                     if (retryCount > maxRetries) {
                                         // 最后一次尝试使用简化模式
