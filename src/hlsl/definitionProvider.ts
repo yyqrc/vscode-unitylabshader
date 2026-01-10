@@ -2,7 +2,7 @@
 import { DefinitionProvider, ImplementationProvider, TypeDefinitionProvider, SymbolInformation, TextDocument, Position, Location, CancellationToken, Definition, workspace, commands, Uri, Range, window } from 'vscode';
 import { execSync } from 'child_process';
 import { join } from 'path';
-import { rgPath } from '@vscode/ripgrep';
+import { getRgPath } from '../common';
 
 export default class HLSLDefinitionProvider implements DefinitionProvider, ImplementationProvider, TypeDefinitionProvider {
 
@@ -24,7 +24,7 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             
             // 搜索 #define 宏定义
             const macroPattern = `^\\s*#define\\s+${name}\\b`;
-            const output = execSync(`"${rgPath}" ${includePattern} --case-sensitive -H --line-number --column --hidden -e "${macroPattern}" .`, execOpts);
+            const output = execSync(`"${getRgPath()}" ${includePattern} --case-sensitive -H --line-number --column --hidden -e "${macroPattern}" .`, execOpts);
             
             const lines = output.toString().split('\n');
             for (const line of lines) {
@@ -63,19 +63,20 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
      */
     private async searchFunctionDefinitions(name: string, rootPath: string): Promise<Location[]> {
         const results: Location[] = [];
-        
+
         try {
             const includePattern = '-g *' + this._hlslPattern.join(' -g *');
             const execOpts = {
                 cwd: rootPath,
                 maxBuffer: 1024 * 1024
             };
-            
+
             // 搜索函数定义（可选修饰符 + 返回类型 + 函数名 + 左括号）
-            // 支持 inline, static, extern 等修饰符
-            const funcPattern = `^(?:inline|static|extern)?\\s*\\w+\\s+${name}\\s*\\(`;
-            const output = execSync(`"${rgPath}" ${includePattern} --case-sensitive -H --line-number --column --hidden -e "${funcPattern}" .`, execOpts);
-            
+            // 支持 inline, static, extern 等修饰符，以及无修饰符的情况
+            // 使用更宽松的模式：返回类型 + 空白 + 函数名 + 可选空白 + 左括号
+            const funcPattern = `^[a-zA-Z_][a-zA-Z0-9_<>,\\s]*\\s+${name}\\s*\\(`;
+            const output = execSync(`"${getRgPath()}" ${includePattern} --case-sensitive -H --line-number --column --hidden -e "${funcPattern}" .`, execOpts);
+
             const lines = output.toString().split('\n');
             for (const line of lines) {
                 const lineMatch = /^(?:((?:[a-zA-Z]:)?[^:]*):)?(\d+):(\d+):(.+)/.exec(line);
@@ -83,7 +84,7 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
                     const filepath = join(rootPath, lineMatch[1]);
                     const lineNum = parseInt(lineMatch[2]) - 1;
                     const lineText = lineMatch[4];
-                    
+
                     // 找到函数名称的精确位置
                     const funcNameMatch = new RegExp(`\\b(${name})\\s*\\(`).exec(lineText);
                     if (funcNameMatch) {
@@ -102,7 +103,7 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
                 console.error('Error searching function definitions:', error.message);
             }
         }
-        
+
         return results;
     }
 
@@ -121,7 +122,7 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             
             // 搜索结构体定义
             const structPattern = `^(?:struct|cbuffer|tbuffer)\\s+${name}\\b`;
-            const output = execSync(`"${rgPath}" ${includePattern} --case-sensitive -H --line-number --column --hidden -e "${structPattern}" .`, execOpts);
+            const output = execSync(`"${getRgPath()}" ${includePattern} --case-sensitive -H --line-number --column --hidden -e "${structPattern}" .`, execOpts);
             
             const lines = output.toString().split('\n');
             for (const line of lines) {
@@ -173,53 +174,60 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
     }
 
     public getDefinitionLocations(document: TextDocument, position: Position): Thenable<Location[]> {
-        
+
         return new Promise<Location[]>(async (resolve, reject) => {
-            
+
             let enable = workspace.getConfiguration('unityshader').get<boolean>('suggest.basic', true);
             if (!enable) {
                 reject();
                 return;
             }
-            
+
             let wordRange = document.getWordRangeAtPosition(position);
             if (!wordRange) {
                 reject();
                 return;
             }
-            
+
             let results: Location[] = [];
             let name = document.getText(wordRange);
-            
+
             // 1. 首先尝试使用 workspace symbol provider（快速）
             try {
                 let symbols = await commands.executeCommand<SymbolInformation[]>('vscode.executeWorkspaceSymbolProvider', name);
-                symbols.filter(s => (s.name === name || s.name.startsWith(name + ' '))).forEach(symbol => {
-                    results.push(symbol.location);
-                });
+                if (symbols && symbols.length > 0) {
+                    // 精确匹配符号名称（符号名可能是 "funcName" 或 "funcName (vertex)" 等格式）
+                    const exactMatches = symbols.filter(s => {
+                        const symbolName = s.name.split(' ')[0].split('(')[0].trim();
+                        return symbolName === name;
+                    });
+                    exactMatches.forEach(symbol => {
+                        results.push(symbol.location);
+                    });
+                }
             } catch (error) {
                 console.error('Error executing workspace symbol provider:', error);
             }
-            
-            // 2. 如果没有找到结果，使用 ripgrep 进行更深入的搜索
-            if (results.length === 0 && workspace.workspaceFolders) {
+
+            // 2. 始终使用 ripgrep 进行搜索以确保找到所有定义
+            if (workspace.workspaceFolders) {
                 for (const folder of workspace.workspaceFolders) {
                     const rootPath = folder.uri.fsPath;
-                    
+
                     // 搜索宏定义
                     const macroResults = await this.searchMacroDefinitions(name, rootPath);
                     results.push(...macroResults);
-                    
+
                     // 搜索函数定义
                     const funcResults = await this.searchFunctionDefinitions(name, rootPath);
                     results.push(...funcResults);
-                    
+
                     // 搜索结构体定义
                     const structResults = await this.searchStructDefinitions(name, rootPath);
                     results.push(...structResults);
                 }
             }
-            
+
             // 3. 去重（同一位置可能被多次找到）
             const uniqueResults = new Map<string, Location>();
             for (const loc of results) {
@@ -228,10 +236,10 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
                     uniqueResults.set(key, loc);
                 }
             }
-            
+
             // 4. 按优先级排序
             const sortedResults = this.sortLocationsByPriority(Array.from(uniqueResults.values()));
-            
+
             resolve(sortedResults);
         });
     }
@@ -270,7 +278,7 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             };
             
             try {
-                const output = execSync(`"${rgPath}" ${includePattern} --files --hidden -g "*${fileName}" .`, execOpts);
+                const output = execSync(`"${getRgPath()}" ${includePattern} --files --hidden -g "*${fileName}" .`, execOpts);
                 const files = output.toString().split('\n').filter(f => f.trim());
                 
                 if (files.length > 0) {
@@ -304,7 +312,7 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             
             // 搜索 Shader "ShaderName" 定义
             const shaderPattern = `^\\s*Shader\\s+"${shaderName}"`;
-            const output = execSync(`"${rgPath}" ${includePattern} --case-sensitive -H --line-number --column --hidden -e "${shaderPattern}" .`, execOpts);
+            const output = execSync(`"${getRgPath()}" ${includePattern} --case-sensitive -H --line-number --column --hidden -e "${shaderPattern}" .`, execOpts);
             
             const lines = output.toString().split('\n');
             for (const line of lines) {

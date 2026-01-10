@@ -1,8 +1,9 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import * as path from 'path';
 
-import { setHlslExtensions } from './common';
+import { setHlslExtensions, setRgPath } from './common';
 
 import HLSLHoverProvider from './hlsl/hoverProvider';
 import HLSLCompletionItemProvider from './hlsl/completionProvider';
@@ -18,12 +19,29 @@ const documentSelector = [
     { language: 'unityshader', scheme: 'untitled' },
 ];
 
+/**
+ * 获取 VS Code 内置的 ripgrep 路径
+ */
+function getVscodeRgPath(): string {
+    const vscodeAppRoot = vscode.env.appRoot;
+    // VS Code 内置 ripgrep 的路径
+    // Windows: node_modules/@vscode/ripgrep/bin/rg.exe
+    // macOS/Linux: node_modules/@vscode/ripgrep/bin/rg
+    const rgExe = process.platform === 'win32' ? 'rg.exe' : 'rg';
+    return path.join(vscodeAppRoot, 'node_modules', '@vscode', 'ripgrep', 'bin', rgExe);
+}
+
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 
     // 控制台输出激活信息
     console.log('Unity Shader extension is now active!');
+
+    // 初始化 ripgrep 路径（使用 VS Code 内置的 ripgrep）
+    const rgPath = getVscodeRgPath();
+    setRgPath(rgPath);
+    console.log('Using ripgrep at:', rgPath);
 
     // 处理文件关联配置
     const associations = vscode.workspace.getConfiguration('files.associations');

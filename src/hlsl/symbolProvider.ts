@@ -1,11 +1,9 @@
 'use strict';
 
 import { DocumentSymbolProvider, WorkspaceSymbolProvider, SymbolKind, SymbolInformation, CancellationToken, TextDocument, Position, Range, Location, Uri, Disposable, window, workspace, extensions, DocumentSymbol } from 'vscode';
-import { hlslExtensions } from '../common';
+import { hlslExtensions, getRgPath } from '../common';
 import { execSync } from 'child_process';
 import { join } from 'path';
-
-import { rgPath } from '@vscode/ripgrep';
 
 interface ISymbolPattern { kind: SymbolKind, pattern: string }
 
@@ -250,7 +248,7 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
                     if (query.startsWith(':')) {
                         let searchPattern = query.slice(3, query.length);
                         try {
-                            let output = execSync(`"${rgPath}" ${includePattern} -o --case-sensitive -H --line-number --column --hidden -e "${searchPattern}" .`, execOpts);
+                            let output = execSync(`"${getRgPath()}" ${includePattern} -o --case-sensitive -H --line-number --column --hidden -e "${searchPattern}" .`, execOpts);
                             let kind = SymbolKind.Function;
                             if (query[1] === 'm') {
                                 kind = SymbolKind.Constant;
@@ -287,7 +285,7 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
                             const kind = entry.kind;
                             const searchPattern = entry.pattern;
 
-                            let output = execSync(`"${rgPath}" ${includePattern} -o --case-sensitive -H --line-number --column --hidden -e "${searchPattern}" .`, execOpts);
+                            let output = execSync(`"${getRgPath()}" ${includePattern} -o --case-sensitive -H --line-number --column --hidden -e "${searchPattern}" .`, execOpts);
 
                             let lines = output.toString().split('\n');
                             for (let line of lines) {
