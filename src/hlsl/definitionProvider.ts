@@ -349,9 +349,8 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
                 return new Location(Uri.file(fullPath), new Position(0, 0));
             }
             
-            // 4. 使用 ripgrep 搜索文件名
+            // 4. 使用 ripgrep 直接搜索文件名（方案5：更简单高效）
             const fileName = path.basename(includePath);
-            const includePattern = '-g *' + this._hlslPattern.join(' -g *');
             const execOpts = {
                 cwd: rootPath,
                 maxBuffer: 1024 * 1024
@@ -359,17 +358,25 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             
             try {
                 this.devLog(`[Include] Searching by filename: ${fileName}`);
-                const output = execSync(`"${getRgPath()}" ${includePattern} --files --hidden -g "*${fileName}" .`, execOpts);
-                const files = output.toString().split('\n').filter(f => f.trim());
                 
-                if (files.length > 0) {
+                // 方案5：直接搜索文件名匹配的文件
+                // 使用 -g 模式精确匹配文件名，而不是先列出所有文件再过滤
+                // 例如：rg --files -g "StdInstancing.cginc" .
+                const command = `"${getRgPath()}" --files --hidden -g "${fileName}" .`;
+                this.devLog(`[Include] Command: ${command}`);
+                
+                const output = execSync(command, execOpts);
+                const matchingFiles = output.toString().split('\n').filter(f => f.trim());
+                this.devLog(`[Include] Found ${matchingFiles.length} matching files`);
+                
+                if (matchingFiles.length > 0) {
                     // 优先选择路径最匹配的文件
-                    let bestMatch = files[0];
+                    let bestMatch = matchingFiles[0];
                     const includeDir = path.dirname(includePath);
                     
                     // 如果 include 路径包含目录，尝试找到最匹配的文件
                     if (includeDir && includeDir !== '.') {
-                        for (const file of files) {
+                        for (const file of matchingFiles) {
                             if (file.includes(includeDir)) {
                                 bestMatch = file;
                                 break;
@@ -380,7 +387,7 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
                     const foundPath = path.join(rootPath, bestMatch);
                     this.devLog(`[Include] ✓ Found by search: ${foundPath}`);
                     return new Location(Uri.file(foundPath), new Position(0, 0));
-                }
+                }                
             } catch (error: any) {
                 // 没有找到文件
                 this.devLog(`[Include] Search failed: ${error.message}`);
