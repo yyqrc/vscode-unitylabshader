@@ -126,6 +126,18 @@
         "language": "unityshader",
         "path": "./snippets/unityshader.json"
       }
+    ],
+    "keybindings": [
+      {
+        "command": "editor.action.formatDocument",
+        "key": "shift+alt+f",
+        "when": "editorHasDocumentFormattingProvider && editorTextFocus && !editorHasSelection && !editorReadonly && !inCompositeEditor"
+      },
+      {
+        "command": "editor.action.formatSelection",
+        "key": "shift+alt+f",
+        "when": "editorHasDocumentFormattingProvider && editorHasSelection && editorTextFocus && !editorReadonly"
+      }
     ]
   },
   "scripts": {

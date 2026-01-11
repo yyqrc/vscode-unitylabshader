@@ -42,11 +42,35 @@ export default class HLSLFormattingProvider implements vscode.DocumentFormatting
         range: vscode.Range,
         options: vscode.FormattingOptions
     ): vscode.TextEdit[] {
-        const text = document.getText(range);
+        // 确保格式化的是完整的行：将range扩展到整行边界
+        const startLine = range.start.line;
+        const endLine = range.end.line;
+        const fullRange = new vscode.Range(
+            startLine, 0, // 从起始行的第0列开始
+            endLine, document.lineAt(endLine).text.length // 到结束行的末尾
+        );
+        
+        const text = document.getText(fullRange);
         const lines = text.split('\n');
         const formattedLines: string[] = [];
         
-        let indentLevel = this.getInitialIndentLevel(document, range.start);
+        // 计算选定区域起始行的实际缩进，作为基准缩进
+        let baseIndent = '';
+        if (lines.length > 0) {
+            // 获取格式化范围第一行在整个文档中的实际内容
+            const documentFirstLine = document.lineAt(range.start.line).text;
+            for (let i = 0; i < documentFirstLine.length; i++) {
+                if (documentFirstLine[i] === ' ' || documentFirstLine[i] === '\t') {
+                    baseIndent += documentFirstLine[i];
+                } else {
+                    break;
+                }
+            }
+        }
+        
+        // 对于选定区域，大括号深度从选定区域第一行开始重新计算为0
+        // 这是关键：整个选定区域的缩进都相对于第一行的缩进重新计算
+        let indentLevel = 0;
         let inMultiLineComment = false;
         let inShaderLabBlock = false;
         
@@ -82,17 +106,18 @@ export default class HLSLFormattingProvider implements vscode.DocumentFormatting
                 indentLevel = Math.max(0, indentLevel - 1);
             }
             
+            // 应用格式化
+            const syntaxIndent = this.createIndent(indentLevel, options);
+            let formatted = '';
+            
             // 处理 ShaderLab 特殊语法
             if (inShaderLabBlock && this.isShaderLabProperty(trimmedLine)) {
-                // ShaderLab 属性保持特定格式
-                const formatted = this.formatShaderLabProperty(trimmedLine, indentLevel, options);
-                formattedLines.push(formatted);
+                formatted = this.formatShaderLabProperty(trimmedLine, indentLevel, options);
             } else {
-                // 应用缩进
-                const indent = this.createIndent(indentLevel, options);
-                const formatted = indent + trimmedLine;
-                formattedLines.push(formatted);
+                formatted = syntaxIndent + trimmedLine;
             }
+            
+            formattedLines.push(baseIndent + formatted);
             
             // 处理缩进增加（左大括号）
             if (trimmedLine.endsWith('{')) {
@@ -107,17 +132,17 @@ export default class HLSLFormattingProvider implements vscode.DocumentFormatting
         
         const formattedText = formattedLines.join('\n');
         
-        return [vscode.TextEdit.replace(range, formattedText)];
+        return [vscode.TextEdit.replace(fullRange, formattedText)];
     }
 
     /**
      * 获取初始缩进级别
      */
-    private getInitialIndentLevel(document: vscode.TextDocument, position: vscode.Position): number {
+    private getInitialIndentLevel(document: vscode.TextDocument, position: vscode.Position, startLine: number = 0): number {
         let level = 0;
         
-        // 向上扫描，计算大括号深度
-        for (let i = 0; i < position.line; i++) {
+        // 向上扫描，计算大括号深度（从startLine开始到position.line）
+        for (let i = startLine; i < position.line; i++) {
             const line = document.lineAt(i).text;
             for (const char of line) {
                 if (char === '{') level++;
@@ -126,6 +151,27 @@ export default class HLSLFormattingProvider implements vscode.DocumentFormatting
         }
         
         return Math.max(0, level);
+    }
+    
+    /**
+     * 获取行的缩进大小（空格数量）
+     */
+    private getIndentSize(line: string, currentLevel: number): number {
+        let indentCount = 0;
+        for (let i = 0; i < line.length; i++) {
+            if (line[i] === ' ') indentCount++;
+            else if (line[i] === '\t') indentCount += 4; // 假设制表符宽度为4个空格
+            else break; // 遇到非空白字符
+        }
+        return indentCount;
+    }
+    
+    /**
+     * 获取制表符大小
+     */
+    private getTabSize(document: vscode.TextDocument): number {
+        // 默认4个空格，可以根据文档设置调整
+        return 4;
     }
 
     /**
