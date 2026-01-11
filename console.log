@@ -1,0 +1,166 @@
+Error: Trying to add a disposable to a DisposableStore that has already been disposed of. The added object will be leaked!
+	at LM.add (file:///Applications/Visual%20Studio%20Code.app/Contents/Resources/app/out/vs/workbench/api/node/extensionHostProcess.js:25:1691)
+	at y4.D (file:///Applications/Visual%20Studio%20Code.app/Contents/Resources/app/out/vs/workbench/api/node/extensionHostProcess.js:25:2301)
+	at y4.getEnvironmentVariableCollection (file:///Applications/Visual%20Studio%20Code.app/Contents/Resources/app/out/vs/workbench/api/node/extensionHostProcess.js:116:58615)
+	at get environmentVariableCollection (file:///Applications/Visual%20Studio%20Code.app/Contents/Resources/app/out/vs/workbench/api/node/extensionHostProcess.js:120:14790)
+	at mpe.stop (/Users/ashiqi/.vscode/extensions/iflow-cli.iflow-cli-vscode-ide-companion-0.2.9/dist/extension.cjs:2315:10688)
+	at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+	at async Object.P4i (/Users/ashiqi/.vscode/extensions/iflow-cli.iflow-cli-vscode-ide-companion-0.2.9/dist/extension.cjs:2315:16739)
+	at async Promise.all (index 9)
+	at async HX.$ (file:///Applications/Visual%20Studio%20Code.app/Contents/Resources/app/out/vs/workbench/api/node/extensionHostProcess.js:120:10014)
+Error: Trying to add a disposable to a DisposableStore that has already been disposed of. The added object will be leaked!
+	at LM.add (file:///Applications/Visual%20Studio%20Code.app/Contents/Resources/app/out/vs/workbench/api/node/extensionHostProcess.js:25:1691)
+	at y4.D (file:///Applications/Visual%20Studio%20Code.app/Contents/Resources/app/out/vs/workbench/api/node/extensionHostProcess.js:25:2301)
+	at y4.$ (file:///Applications/Visual%20Studio%20Code.app/Contents/Resources/app/out/vs/workbench/api/node/extensionHostProcess.js:116:59062)
+	at y4.getEnvironmentVariableCollection (file:///Applications/Visual%20Studio%20Code.app/Contents/Resources/app/out/vs/workbench/api/node/extensionHostProcess.js:116:58630)
+	at get environmentVariableCollection (file:///Applications/Visual%20Studio%20Code.app/Contents/Resources/app/out/vs/workbench/api/node/extensionHostProcess.js:120:14790)
+	at mpe.stop (/Users/ashiqi/.vscode/extensions/iflow-cli.iflow-cli-vscode-ide-companion-0.2.9/dist/extension.cjs:2315:10688)
+	at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+	at async Object.P4i (/Users/ashiqi/.vscode/extensions/iflow-cli.iflow-cli-vscode-ide-companion-0.2.9/dist/extension.cjs:2315:16739)
+	at async Promise.all (index 9)
+	at async HX.$ (file:///Applications/Visual%20Studio%20Code.app/Contents/Resources/app/out/vs/workbench/api/node/extensionHostProcess.js:120:10014)
+Unity Shader extension is now active!
+Engine context manager initialized
+Using ripgrep at: /Applications/Visual Studio Code.app/Contents/Resources/app/node_modules/@vscode/ripgrep/bin/rg
+[SemanticAnalyzer] 开始分析文档: /Users/ashiqi/Documents/UGit/CGameEditorProject/LookDevProject/Assets/Shaders/SemanticAnalysis.shader
+[SemanticAnalyzer] 文档总行数: 51
+[SemanticAnalyzer] collectDefinitions 开始，总行数: 51
+[SemanticAnalyzer] 第0行: "Shader "Test/SemanticAnalysis"..." inCGProgram=false
+[SemanticAnalyzer] 第1行: "{..." inCGProgram=false
+[SemanticAnalyzer] 第2行: "SubShader..." inCGProgram=false
+[SemanticAnalyzer] 第3行: "{..." inCGProgram=false
+[SemanticAnalyzer] 第4行: "Pass..." inCGProgram=false
+[SemanticAnalyzer] 第5行: "{..." inCGProgram=false
+[SemanticAnalyzer] 第6行: "CGPROGRAM..." inCGProgram=false
+[SemanticAnalyzer] 第7行: "#pragma vertex vert..." inCGProgram=true
+[SemanticAnalyzer] 第8行: "#pragma fragment frag..." inCGProgram=true
+[SemanticAnalyzer] 第9行: "..." inCGProgram=true
+[SemanticAnalyzer] 第10行: "struct appdata..." inCGProgram=true
+[SemanticAnalyzer] 第11行: "{..." inCGProgram=true
+[SemanticAnalyzer] 第12行: "float4 vertex : POSITION;..." inCGProgram=true
+[SemanticAnalyzer] 第13行: "float2 uv : TEXCOORD0;..." inCGProgram=true
+[SemanticAnalyzer] 第14行: "};..." inCGProgram=true
+[SemanticAnalyzer] 第15行: "..." inCGProgram=true
+[SemanticAnalyzer] 第16行: "struct v2f..." inCGProgram=true
+[SemanticAnalyzer] 第17行: "{..." inCGProgram=true
+[SemanticAnalyzer] 第18行: "float2 uv : TEXCOORD0;..." inCGProgram=true
+[SemanticAnalyzer] 第19行: "float4 vertex : SV_POSITION;..." inCGProgram=true
+[SemanticAnalyzer] 第20行: "};..." inCGProgram=true
+[SemanticAnalyzer] 第21行: "..." inCGProgram=true
+[SemanticAnalyzer] 第22行: "v2f vert(appdata v)..." inCGProgram=true
+[SemanticAnalyzer] 第22行匹配到变量声明: v2f vert
+[SemanticAnalyzer]   跳过（关键字或函数调用）: isKeyword(v2f)=false, isKeyword(vert)=false, 包含函数调用=true
+[SemanticAnalyzer] 第23行: "{..." inCGProgram=true
+[SemanticAnalyzer] 第24行: "v2f o;..." inCGProgram=true
+[SemanticAnalyzer] 第24行匹配到变量声明: v2f o
+[SemanticAnalyzer]   添加变量: o, 类型: v2f, 作用域: vert
+[SemanticAnalyzer] 第25行: "o.vertex = UnityObjectToClipPos(v.vertex);..." inCGProgram=true
+[SemanticAnalyzer] 第26行: "o.uv = v.uv;..." inCGProgram=true
+[SemanticAnalyzer] 第27行: "return o;..." inCGProgram=true
+[SemanticAnalyzer] 第27行匹配到变量声明: return o
+[SemanticAnalyzer]   跳过（关键字或函数调用）: isKeyword(return)=true, isKeyword(o)=false, 包含函数调用=false
+[SemanticAnalyzer] 第28行: "}..." inCGProgram=true
+[SemanticAnalyzer] 第29行: "..." inCGProgram=true
+[SemanticAnalyzer] 第30行: "// fixed4 frag(v2f i) : SV_Target..." inCGProgram=true
+[SemanticAnalyzer] 第31行: "// {..." inCGProgram=true
+[SemanticAnalyzer] 第32行: "//     float3 color = float3(1, 0, 0);  // 声明变量..." inCGProgram=true
+[SemanticAnalyzer] 第33行: "//     float alpha = 1.0;                // 声明变量..." inCGProgram=true
+[SemanticAnalyzer] 第34行: "..." inCGProgram=true
+[SemanticAnalyzer] 第35行: "//     return fixed4(color, alpha);      // 使用变量..." inCGProgram=true
+[SemanticAnalyzer] 第36行: "// }..." inCGProgram=true
+[SemanticAnalyzer] 第37行: "..." inCGProgram=true
+[SemanticAnalyzer] 第38行: "fixed4 frag(v2f i) : SV_Target..." inCGProgram=true
+[SemanticAnalyzer] 第38行匹配到变量声明: fixed4 frag
+[SemanticAnalyzer]   跳过（关键字或函数调用）: isKeyword(fixed4)=false, isKeyword(frag)=false, 包含函数调用=true
+[SemanticAnalyzer] 第39行: "{..." inCGProgram=true
+[SemanticAnalyzer] 第40行: "float3 color = float3(1, 0, 0);  // 函数调用初始化..." inCGProgram=true
+[SemanticAnalyzer] 第40行匹配到变量声明: float3 color
+[SemanticAnalyzer]   添加变量: color, 类型: float3, 作用域: frag
+[SemanticAnalyzer] 第41行: "float alpha = 1.0;                // 简单初始化..." inCGProgram=true
+[SemanticAnalyzer] 第41行匹配到变量声明: float alpha
+[SemanticAnalyzer]   添加变量: alpha, 类型: float, 作用域: frag
+[SemanticAnalyzer] 第42行: "v2f o;                            // 无初始化..." inCGProgram=true
+[SemanticAnalyzer] 第42行匹配到变量声明: v2f o
+[SemanticAnalyzer]   添加变量: o, 类型: v2f, 作用域: frag
+[SemanticAnalyzer] 第43行: "Texture2D<float4> tex;            // 泛型类型..." inCGProgram=true
+[SemanticAnalyzer] 第43行匹配到变量声明: Texture2D<float4> tex
+[SemanticAnalyzer]   添加变量: tex, 类型: Texture2D<float4>, 作用域: frag
+[SemanticAnalyzer] 第44行: "..." inCGProgram=true
+[SemanticAnalyzer] 第45行: "return fixed4(color, alpha);..." inCGProgram=true
+[SemanticAnalyzer] 第45行匹配到变量声明: return fixed4
+[SemanticAnalyzer]   跳过（关键字或函数调用）: isKeyword(return)=true, isKeyword(fixed4)=false, 包含函数调用=true
+[SemanticAnalyzer] 第46行: "}..." inCGProgram=true
+[SemanticAnalyzer] 第47行: "ENDCG..." inCGProgram=true
+[SemanticAnalyzer] 第48行: "}..." inCGProgram=false
+[SemanticAnalyzer] 第49行: "}..." inCGProgram=false
+[SemanticAnalyzer] 第50行: "}..." inCGProgram=false
+[SemanticAnalyzer] 收集到的变量数量: 6
+[SemanticAnalyzer] 收集到的变量: (6) ['v', 'o', 'i', 'color', 'alpha', 'tex']
+[SemanticAnalyzer]   - v: (1) ['appdata (line 22)']
+[SemanticAnalyzer]   - o: (4) ['v2f (line 24)', 'v2f (line 24)', 'v2f (line 42)', 'v2f (line 42)']
+[SemanticAnalyzer]   - i: (1) ['v2f (line 38)']
+[SemanticAnalyzer]   - color: (1) ['float3 (line 40)']
+[SemanticAnalyzer]   - alpha: (1) ['float (line 41)']
+[SemanticAnalyzer]   - tex: (2) ['Texture2D<float4> (line 43)', 'Texture2D<float4> (line 43)']
+[RPC] onChatCompletionPartialResult is marked as response proxy, pending refactor.
+[RPC] onChatCompletionDone is marked as response proxy, pending refactor.
+[RPC] onChatCompletionFail is marked as response proxy, pending refactor.
+[RPC] setChatSearchKnowledgeBaseResult is marked as response proxy, pending refactor.
+[RPC] updateModelSetting is marked as response proxy, pending refactor.
+[RPC] setCurrentChatModel is marked as response proxy, pending refactor.
+[RPC] onAttendChatRaffleSuccess is marked as response proxy, pending refactor.
+[RPC] onAttendChatRaffleFail is marked as response proxy, pending refactor.
+[RPC] onShowCompletionHistorySuccess is marked as response proxy, pending refactor.
+[RPC] onFeedbackSubmitSuccess is marked as response proxy, pending refactor.
+[RPC] onFeedbackSubmitFail is marked as response proxy, pending refactor.
+[RPC] onAttendFeedbackRaffleSuccess is marked as response proxy, pending refactor.
+[RPC] onAttendFeedbackRaffleFail is marked as response proxy, pending refactor.
+[RPC] showNewestBusinessLabelItem is marked as response proxy, pending refactor.
+[RPC] onSubmitNewestBusinessLabelItemSuccess is marked as response proxy, pending refactor.
+[RPC] onSubmitNewestBusinessLabelItemFail is marked as response proxy, pending refactor.
+[RPC] onGetEvaluationTypeSuccess is marked as response proxy, pending refactor.
+[RPC] onGetEvaluationTypeFail is marked as response proxy, pending refactor.
+[RPC] showNewestBenchmarkItem is marked as response proxy, pending refactor.
+[RPC] onSubmitNewestBenchmarkSituationItemSuccess is marked as response proxy, pending refactor.
+[RPC] onSubmitNewestBenchmarkSituationItemFail is marked as response proxy, pending refactor.
+[RPC] onSubmitNewestBenchmarkContextItemSuccess is marked as response proxy, pending refactor.
+[RPC] onSubmitNewestBenchmarkContextItemFail is marked as response proxy, pending refactor.
+(node:48674) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `Code Helper (Plugin) --trace-deprecation ...` to show where the warning was created)
+[Extension] onDidOpenTextDocument: git/scm0/input languageId: scminput
+[HoverProvider] 悬停在单词 'color' 上，行号: 40, backchar: ' '
+[SemanticAnalyzer] getVariableType: 查询变量 'color' 在第 40 行
+[SemanticAnalyzer] 当前存储的所有变量: (0) []
+[SemanticAnalyzer]   未找到变量 'color'
+[HoverProvider] getVariableType 返回: undefined
+[HoverProvider] 未找到变量类型，继续检查其他悬停提示
+[HoverProvider] 悬停在单词 'color' 上，行号: 40, backchar: ' '
+[SemanticAnalyzer] getVariableType: 查询变量 'color' 在第 40 行
+[SemanticAnalyzer] 当前存储的所有变量: (0) []
+[SemanticAnalyzer]   未找到变量 'color'
+[HoverProvider] getVariableType 返回: undefined
+[HoverProvider] 未找到变量类型，继续检查其他悬停提示
+[HoverProvider] 悬停在单词 'alpha' 上，行号: 41, backchar: ' '
+[SemanticAnalyzer] getVariableType: 查询变量 'alpha' 在第 41 行
+[SemanticAnalyzer] 当前存储的所有变量: (0) []
+[SemanticAnalyzer]   未找到变量 'alpha'
+[HoverProvider] getVariableType 返回: undefined
+[HoverProvider] 未找到变量类型，继续检查其他悬停提示
+[HoverProvider] 悬停在单词 'alpha' 上，行号: 41, backchar: ' '
+[SemanticAnalyzer] getVariableType: 查询变量 'alpha' 在第 41 行
+[SemanticAnalyzer] 当前存储的所有变量: (0) []
+[SemanticAnalyzer]   未找到变量 'alpha'
+[HoverProvider] getVariableType 返回: undefined
+[HoverProvider] 未找到变量类型，继续检查其他悬停提示
+[HoverProvider] 悬停在单词 'o' 上，行号: 42, backchar: ' '
+[SemanticAnalyzer] getVariableType: 查询变量 'o' 在第 42 行
+[SemanticAnalyzer] 当前存储的所有变量: (0) []
+[SemanticAnalyzer]   未找到变量 'o'
+[HoverProvider] getVariableType 返回: undefined
+[HoverProvider] 未找到变量类型，继续检查其他悬停提示
+[HoverProvider] 悬停在单词 'tex' 上，行号: 43, backchar: ' '
+[SemanticAnalyzer] getVariableType: 查询变量 'tex' 在第 43 行
+[SemanticAnalyzer] 当前存储的所有变量: (0) []
+[SemanticAnalyzer]   未找到变量 'tex'
+[HoverProvider] getVariableType 返回: undefined
+[HoverProvider] 未找到变量类型，继续检查其他悬停提示
