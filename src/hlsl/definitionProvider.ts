@@ -1,11 +1,33 @@
 
 import { DefinitionProvider, ImplementationProvider, TypeDefinitionProvider, SymbolInformation, TextDocument, Position, Location, CancellationToken, Definition, workspace, commands, Uri, Range, window } from 'vscode';
+import { CachedSymbolKind } from '../cache/symbolCacheTypes';
 import { execSync } from 'child_process';
 import { join } from 'path';
 import { getRgPath } from '../common';
 import { EngineContextManager, EngineType } from '../common/engineContext';
+import { SymbolCacheManager, CachedSymbol } from '../cache';
+
+// 缓存条目接口
+interface CacheEntry {
+    results: Location[];
+    timestamp: number;
+}
 
 export default class HLSLDefinitionProvider implements DefinitionProvider, ImplementationProvider, TypeDefinitionProvider {
+
+	// 符号定义缓存（30秒有效期）
+	private definitionCache: Map<string, CacheEntry> = new Map();
+	private readonly CACHE_TTL = 30000; // 30秒
+	
+	// 文件变更监听
+	private fileWatcher: any = null;
+	
+	// 符号缓存管理器
+	private symbolCacheManager: SymbolCacheManager | null = null;
+	
+	constructor(symbolCacheManager?: SymbolCacheManager | null) {
+		this.symbolCacheManager = symbolCacheManager || null;
+	}
 
     /**
      * 判断是否为开发环境
@@ -16,6 +38,44 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
         return process.env.VSCODE_DEBUG_MODE === 'true' || 
                process.env.NODE_ENV === 'development';
     }
+    
+    /**
+     * 初始化文件监听器（增量索引）
+     */
+    private initFileWatcher(): void {
+        if (this.fileWatcher) return;
+        
+        const pattern = '**/*.{hlsl,hlsli,fx,fxh,vsh,psh,cginc,compute,shader,cg,usf,ush}';
+        this.fileWatcher = workspace.createFileSystemWatcher(pattern);
+        
+        // 文件变更时清除相关缓存
+        this.fileWatcher.onDidChange((uri: Uri) => {
+            this.devLog(`[Cache] File changed: ${uri.fsPath}, clearing cache`);
+            this.clearCache();
+        });
+        
+        this.fileWatcher.onDidCreate((uri: Uri) => {
+            this.devLog(`[Cache] File created: ${uri.fsPath}, clearing cache`);
+            this.clearCache();
+        });
+        
+        this.fileWatcher.onDidDelete((uri: Uri) => {
+            this.devLog(`[Cache] File deleted: ${uri.fsPath}, clearing cache`);
+            this.clearCache();
+        });
+        
+        this.devLog(`[Cache] File watcher initialized`);
+    }
+    
+    /**
+     * 清除缓存
+     */
+    private clearCache(): void {
+        this.definitionCache.clear();
+        this.devLog(`[Cache] All cache cleared`);
+    }
+    
+
 
     /**
      * 开发环境日志输出
@@ -220,9 +280,130 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
         });
     }
 
+    /**
+     * 根据上下文推测符号类型
+     */
+    private guessSymbolType(document: TextDocument, position: Position): 'function' | 'macro' | 'both' | 'type' | 'unknown' {
+        try {
+            const line = document.lineAt(position.line).text;
+            const wordRange = document.getWordRangeAtPosition(position);
+            if (!wordRange) return 'unknown';
+            
+            const word = document.getText(wordRange);
+            const charAfter = line.charAt(wordRange.end.character);
+            
+            // 函数调用：后面有括号
+            if (charAfter === '(' || line.substring(wordRange.end.character).trim().startsWith('(')) {
+                // 检查是否是全大写（可能是宏函数）
+                if (word === word.toUpperCase() && word.length > 2) {
+                    this.devLog(`[Guess] Macro-function detected: ${word}`);
+                    return 'both'; // 既可能是宏，也可能是函数
+                }
+                return 'function';
+            }
+            
+            // 宏定义：前面有 #define 或全大写
+            if (line.includes('#define') || word === word.toUpperCase()) {
+                return 'macro';
+            }
+            
+            // 类型声明：前面有类型关键字
+            const beforeWord = line.substring(0, wordRange.start.character).trim();
+            if (/\b(struct|class|typedef|uniform|varying|attribute|cbuffer|tbuffer)\s*$/.test(beforeWord)) {
+                return 'type';
+            }
+            
+            // 变量声明：前面是类型名（首字母大写）
+            const tokens = beforeWord.split(/\s+/);
+            const lastToken = tokens[tokens.length - 1];
+            if (lastToken && /^[A-Z]/.test(lastToken)) {
+                return 'type';
+            }
+            
+            // 默认推测为函数（最常见）
+            return 'function';
+        } catch (error) {
+            return 'unknown';
+        }
+    }
+    
+	/**
+	 * 搜索符号（不使用缓存）
+	 */
+	private async searchSymbolWithoutCache(name: string): Promise<Location[]> {
+		const results: Location[] = [];
+		
+		if (workspace.workspaceFolders) {
+			for (const folder of workspace.workspaceFolders) {
+				const rootPath = folder.uri.fsPath;
+				
+				// 并行搜索所有类型
+				const [macroResults, funcResults, structResults] = await Promise.all([
+					this.searchMacroDefinitions(name, rootPath),
+					this.searchFunctionDefinitions(name, rootPath),
+					this.searchStructDefinitions(name, rootPath)
+				]);
+				
+				results.push(...macroResults, ...funcResults, ...structResults);
+				
+				if (results.length > 0) {
+					break;
+				}
+			}
+		}
+		
+		return results;
+	}
+	
+	/**
+	 * 从持久化缓存中查找符号
+	 */
+	private searchSymbolFromPersistentCache(name: string): Location[] {
+		if (!this.symbolCacheManager) {
+			return [];
+		}
+		
+		const symbols = this.symbolCacheManager.findSymbol(name);
+		if (symbols.length === 0) {
+			return [];
+		}
+		
+		this.devLog(`[PersistentCache] Found ${symbols.length} symbols for "${name}"`);
+		
+		// 转换为 Location 对象
+		const results: Location[] = [];
+		for (const symbol of symbols) {
+			try {
+				const uri = Uri.file(this.getAbsolutePath(symbol.filePath));
+				const range = new Range(
+					new Position(symbol.line, symbol.column),
+					new Position(symbol.endLine, symbol.endColumn)
+				);
+				results.push(new Location(uri, range));
+			} catch (error) {
+				this.devLog(`[PersistentCache] Error converting symbol: ${error}`);
+			}
+		}
+		
+		return results;
+	}
+	
+	/**
+	 * 获取绝对路径
+	 */
+	private getAbsolutePath(relativePath: string): string {
+		if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
+			const path = require('path');
+			return path.join(workspace.workspaceFolders[0].uri.fsPath, relativePath);
+		}
+		return relativePath;
+	}
+
     public getDefinitionLocations(document: TextDocument, position: Position): Thenable<Location[]> {
 
         return new Promise<Location[]>(async (resolve, reject) => {
+            const startTime = Date.now();
+            this.devLog(`[Performance] ========== Definition Search Started ==========`);
 
             let enable = workspace.getConfiguration('unityshader').get<boolean>('suggest.basic', true);
             if (!enable) {
@@ -238,44 +419,158 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
 
             let results: Location[] = [];
             let name = document.getText(wordRange);
-
-            // 1. 首先尝试使用 workspace symbol provider（快速）
-            try {
-                let symbols = await commands.executeCommand<SymbolInformation[]>('vscode.executeWorkspaceSymbolProvider', name);
-                if (symbols && symbols.length > 0) {
-                    // 精确匹配符号名称（符号名可能是 "funcName" 或 "funcName (vertex)" 等格式）
-                    const exactMatches = symbols.filter(s => {
-                        const symbolName = s.name.split(' ')[0].split('(')[0].trim();
-                        return symbolName === name;
-                    });
-                    exactMatches.forEach(symbol => {
-                        results.push(symbol.location);
-                    });
-                }
-            } catch (error) {
-                this.devLog(`[Symbol] Error: ${error}`);
+            this.devLog(`[Search] Looking for: "${name}"`);
+            
+            // 初始化文件监听器（首次调用时）
+            if (!this.fileWatcher) {
+                this.initFileWatcher();
             }
+            
+            // 策略0: 检查缓存
+            const cacheKey = `${name}:${document.uri.fsPath}:${position.line}:${position.character}`;
+            const cached = this.definitionCache.get(cacheKey);
+            if (cached && (Date.now() - cached.timestamp) < this.CACHE_TTL) {
+                this.devLog(`[Cache] ✓ Hit! Returning ${cached.results.length} cached results (age: ${Date.now() - cached.timestamp}ms)`);
+                this.devLog(`[Performance] ========== Total time: ${Date.now() - startTime}ms (cached), Found: ${cached.results.length} ==========`);
+                resolve(cached.results);
+                return;
+            }
+            
+			// 策略0.5: 检查持久化缓存
+			if (this.symbolCacheManager) {
+				const persistentStartTime = Date.now();
+				const persistentResults = this.searchSymbolFromPersistentCache(name);
+				
+				if (persistentResults.length > 0) {
+					this.devLog(`[PersistentCache] ✓ Hit! Returning ${persistentResults.length} results (time: ${Date.now() - persistentStartTime}ms)`);
+					this.devLog(`[Performance] ========== Total time: ${Date.now() - startTime}ms (persistent), Found: ${persistentResults.length} ==========`);
+					
+					// 存入定义缓存
+					this.definitionCache.set(cacheKey, {
+						results: persistentResults,
+						timestamp: Date.now()
+					});
+					
+					resolve(persistentResults);
+					return;
+				}
+				
+			this.devLog(`[PersistentCache] ✗ Miss (time: ${Date.now() - persistentStartTime}ms)`);
+			}
 
-            // 2. 始终使用 ripgrep 进行搜索以确保找到所有定义
+            // 智能类型判断：根据上下文推测符号类型（提前计算，后续存储缓存时使用）
+            const symbolType = this.guessSymbolType(document, position);
+
+            // 策略1: 优先使用 ripgrep 直接搜索（最快最准确）
             if (workspace.workspaceFolders) {
+                const rgStartTime = Date.now();
+                this.devLog(`[Performance] Starting ripgrep search...`);
+                
+                this.devLog(`[Search] Guessed type: ${symbolType}`);
+                
                 for (const folder of workspace.workspaceFolders) {
                     const rootPath = folder.uri.fsPath;
 
-                    // 搜索宏定义
-                    const macroResults = await this.searchMacroDefinitions(name, rootPath);
-                    results.push(...macroResults);
-
-                    // 搜索函数定义
-                    const funcResults = await this.searchFunctionDefinitions(name, rootPath);
-                    results.push(...funcResults);
-
-                    // 搜索结构体定义
-                    const structResults = await this.searchStructDefinitions(name, rootPath);
-                    results.push(...structResults);
+                    // 优化：根据推测的类型调整搜索顺序和策略
+                    if (symbolType === 'function') {
+                        // 只搜索函数（最常见的情况）
+                        const funcStart = Date.now();
+                        const funcResults = await this.searchFunctionDefinitions(name, rootPath);
+                        this.devLog(`[Performance] Function search: ${Date.now() - funcStart}ms`);
+                        results.push(...funcResults);
+                        
+                        // 提前终止：找到结果就返回
+                        if (results.length > 0) {
+                            this.devLog(`[Search] Found ${results.length} results, early termination`);
+                            break;
+                        }
+                    } else if (symbolType === 'both') {
+                        // 宏函数：同时搜索宏和函数
+                        const bothStart = Date.now();
+                        const [macroResults, funcResults] = await Promise.all([
+                            this.searchMacroDefinitions(name, rootPath),
+                            this.searchFunctionDefinitions(name, rootPath)
+                        ]);
+                        this.devLog(`[Performance] Macro+Function search: ${Date.now() - bothStart}ms`);
+                        results.push(...macroResults, ...funcResults);
+                        
+                        if (results.length > 0) {
+                            this.devLog(`[Search] Found ${results.length} results (macro: ${macroResults.length}, function: ${funcResults.length}), early termination`);
+                            break;
+                        }
+                    } else if (symbolType === 'type') {
+                        // 只搜索结构体
+                        const structStart = Date.now();
+                        const structResults = await this.searchStructDefinitions(name, rootPath);
+                        this.devLog(`[Performance] Struct search: ${Date.now() - structStart}ms`);
+                        results.push(...structResults);
+                        
+                        if (results.length > 0) {
+                            this.devLog(`[Search] Found ${results.length} results, early termination`);
+                            break;
+                        }
+                    } else if (symbolType === 'macro') {
+                        // 只搜索宏
+                        const macroStart = Date.now();
+                        const macroResults = await this.searchMacroDefinitions(name, rootPath);
+                        this.devLog(`[Performance] Macro search: ${Date.now() - macroStart}ms`);
+                        results.push(...macroResults);
+                        
+                        if (results.length > 0) {
+                            this.devLog(`[Search] Found ${results.length} results, early termination`);
+                            break;
+                        }
+                    } else {
+                        // 未知类型：并行搜索所有类型（但找到后立即终止）
+                        const searchStart = Date.now();
+                        const [macroResults, funcResults, structResults] = await Promise.all([
+                            this.searchMacroDefinitions(name, rootPath),
+                            this.searchFunctionDefinitions(name, rootPath),
+                            this.searchStructDefinitions(name, rootPath)
+                        ]);
+                        this.devLog(`[Performance] Parallel search: ${Date.now() - searchStart}ms`);
+                        
+                        results.push(...macroResults, ...funcResults, ...structResults);
+                        
+                        if (results.length > 0) {
+                            this.devLog(`[Search] Found ${results.length} results, early termination`);
+                            break;
+                        }
+                    }
                 }
+                
+                this.devLog(`[Performance] Total ripgrep time: ${Date.now() - rgStartTime}ms`);
             }
 
-            // 3. 去重（同一位置可能被多次找到）
+            // 策略2: 只有在 ripgrep 未找到结果时，才使用 workspace symbol provider 作为后备
+            if (results.length === 0) {
+                this.devLog(`[Search] Ripgrep found nothing, trying workspace symbol provider...`);
+                const symbolStartTime = Date.now();
+                
+                try {
+                    let symbols = await commands.executeCommand<SymbolInformation[]>('vscode.executeWorkspaceSymbolProvider', name);
+                    this.devLog(`[Performance] Symbol provider time: ${Date.now() - symbolStartTime}ms`);
+                    
+                    if (symbols && symbols.length > 0) {
+                        this.devLog(`[Symbol] Provider returned ${symbols.length} symbols`);
+                        // 精确匹配符号名称（符号名可能是 "funcName" 或 "funcName (vertex)" 等格式）
+                        const exactMatches = symbols.filter(s => {
+                            const symbolName = s.name.split(' ')[0].split('(')[0].trim();
+                            return symbolName === name;
+                        });
+                        this.devLog(`[Symbol] Exact matches: ${exactMatches.length}`);
+                        exactMatches.forEach(symbol => {
+                            results.push(symbol.location);
+                        });
+                    }
+                } catch (error) {
+                    this.devLog(`[Symbol] Error: ${error}`);
+                }
+            } else {
+                this.devLog(`[Search] Ripgrep found ${results.length} results, skipping symbol provider`);
+            }
+
+            // 去重（同一位置可能被多次找到）
             const uniqueResults = new Map<string, Location>();
             for (const loc of results) {
                 const key = `${loc.uri.fsPath}:${loc.range.start.line}:${loc.range.start.character}`;
@@ -284,11 +579,99 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
                 }
             }
 
-            // 4. 按优先级排序
+            // 按优先级排序
             const sortedResults = this.sortLocationsByPriority(Array.from(uniqueResults.values()));
+            
+            // 存入缓存
+            if (sortedResults.length > 0) {
+                this.definitionCache.set(cacheKey, {
+                    results: sortedResults,
+                    timestamp: Date.now()
+                });
+                this.devLog(`[Cache] Stored ${sortedResults.length} results for "${name}"`);                
+                // 同时存入持久化缓存（如果存在）
+                if (this.symbolCacheManager) {
+                    this.storeResultsToPersistentCache(name, sortedResults, symbolType);
+                }
+                
+                // 限制缓存大小（最多100个条目）
+                if (this.definitionCache.size > 100) {
+                    const oldestKey = this.definitionCache.keys().next().value;
+                    if (oldestKey) {
+                        this.definitionCache.delete(oldestKey);
+                        this.devLog(`[Cache] Evicted oldest entry`);
+                    }
+                }
+            }
+
+            const totalTime = Date.now() - startTime;
+            this.devLog(`[Performance] ========== Total time: ${totalTime}ms, Found: ${sortedResults.length} ==========`);
 
             resolve(sortedResults);
         });
+    }
+
+    /**
+     * 将搜索结果存入持久化缓存
+     */
+    private storeResultsToPersistentCache(
+        name: string,
+        results: Location[],
+        symbolType: 'function' | 'macro' | 'both' | 'type' | 'unknown'
+    ): void {
+        if (!this.symbolCacheManager || results.length === 0) {
+            return;
+        }
+
+        // 将符号类型映射到 CachedSymbolKind
+        let kind: CachedSymbolKind;
+        switch (symbolType) {
+            case 'function':
+                kind = CachedSymbolKind.Function;
+                break;
+            case 'macro':
+                kind = CachedSymbolKind.Macro;
+                break;
+            case 'type':
+                kind = CachedSymbolKind.Struct;
+                break;
+            default:
+                kind = CachedSymbolKind.Function; // 默认为函数
+        }
+
+        for (const location of results) {
+            try {
+                const relativePath = this.getRelativePath(location.uri.fsPath);
+                
+                const symbol = {
+                    name: name,
+                    kind: kind,
+                    filePath: relativePath,
+                    line: location.range.start.line,
+                    column: location.range.start.character,
+                    endLine: location.range.end.line,
+                    endColumn: location.range.end.character,
+                    signature: name, // 简单签名
+                    documentation: '',
+                };
+
+                this.symbolCacheManager.storeSymbol(symbol);
+            } catch (error) {
+                this.devLog(`[PersistentCache] Error storing symbol: ${error}`);
+            }
+        }
+    }
+
+    /**
+     * 获取相对路径
+     */
+    private getRelativePath(absolutePath: string): string {
+        if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
+            const path = require('path');
+            const workspacePath = workspace.workspaceFolders[0].uri.fsPath;
+            return path.relative(workspacePath, absolutePath).replace(/\\/g, '/');
+        }
+        return absolutePath;
     }
 
     /**
@@ -421,9 +804,16 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             // 构建搜索模式：匹配 Shader "ShaderName" 行
             const pattern = `^\\s*Shader\\s+"${escapedShaderName}"`;
             
+            // FallBack 是 Unity 独有的功能，只需要搜索 .shader 和 .cginc 文件
+            const fileTypes = ['*.shader', '*.cginc'];
+            const globPattern = fileTypes.map(t => `-g "${t}"`).join(' ');
+            
             // 执行 ripgrep 搜索
+            // 注意：Windows 上需要使用双引号包裹正则表达式，而非单引号
             const execOpts = { cwd: rootPath, maxBuffer: 1024 * 1024 };
-            const cmd = `"${rgPath}" -g "*.shader" --case-sensitive -H --line-number --hidden -e '${pattern}' .`;
+            const cmd = `"${rgPath}" ${globPattern} --case-sensitive -H --line-number --hidden -e "${pattern}" .`;
+            
+            this.devLog(`[FallBack] Command: ${cmd}`);
             
             const output = execSync(cmd, execOpts);
             

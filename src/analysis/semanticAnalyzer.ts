@@ -159,17 +159,17 @@ export class SemanticAnalyzer {
             if (varMatch && !inStruct) {
                 const varType = varMatch[1];
                 const varName = varMatch[2];
-                console.log(`[SemanticAnalyzer] 第${i}行匹配到变量声明: ${varType} ${varName}`);
+                // console.log(`[SemanticAnalyzer] 第${i}行匹配到变量声明: ${varType} ${varName}`);
                 
                 // 排除关键字和函数调用
                 if (!this.isKeyword(varType) && !this.isKeyword(varName) && !trimmedLine.includes(`${varName}(`)) {
                     const scope = currentFunction || 'global';
                     // 在原始行中查找变量名的位置（考虑缩进）
                     const varCharPos = line.indexOf(varName, line.indexOf(varType));
-                    console.log(`[SemanticAnalyzer]   添加变量: ${varName}, 类型: ${varType}, 作用域: ${scope}`);
+                    // console.log(`[SemanticAnalyzer]   添加变量: ${varName}, 类型: ${varType}, 作用域: ${scope}`);
                     this.addVariable(varName, varType, i, varCharPos >= 0 ? varCharPos : 0, false, scope);
                 } else {
-                    console.log(`[SemanticAnalyzer]   跳过（关键字或函数调用）: isKeyword(${varType})=${this.isKeyword(varType)}, isKeyword(${varName})=${this.isKeyword(varName)}, 包含函数调用=${trimmedLine.includes(`${varName}(`)}`);
+                    // console.log(`[SemanticAnalyzer]   跳过（关键字或函数调用）: isKeyword(${varType})=${this.isKeyword(varType)}, isKeyword(${varName})=${this.isKeyword(varName)}, 包含函数调用=${trimmedLine.includes(`${varName}(`)}`);
                 }
             }
 

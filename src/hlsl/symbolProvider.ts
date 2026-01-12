@@ -4,6 +4,7 @@ import { DocumentSymbolProvider, WorkspaceSymbolProvider, SymbolKind, SymbolInfo
 import { hlslExtensions, getRgPath } from '../common';
 import { execSync } from 'child_process';
 import { join } from 'path';
+import { SymbolCacheManager } from '../cache';
 
 interface ISymbolPattern { kind: SymbolKind, pattern: string }
 
@@ -58,10 +59,18 @@ export interface ISymbolCache { [path: string]: SymbolInformation[]; }
 
 export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvider, WorkspaceSymbolProvider {
 
-    private _disposables: Disposable[] = [];
+	private _disposables: Disposable[] = [];
 
-    // 支持的文件扩展名
-    private _hlslPattern = ['.hlsl', '.hlsli', '.fx', '.fxh', '.vsh', '.psh', '.cginc', '.compute', '.shader', '.cg'];
+	// 支持的文件扩展名
+	private _hlslPattern = ['.hlsl', '.hlsli', '.fx', '.fxh', '.vsh', '.psh', '.cginc', '.compute', '.shader', '.cg'];
+
+	// 符号缓存机制
+	private symbolCache: Map<string, { symbols: SymbolInformation[], timestamp: number }> = new Map();
+	private readonly CACHE_TTL = 30000; // 30秒缓存有效期
+	private readonly CACHE_KEY_PREFIX = 'workspace_symbols_';
+	
+	// 符号缓存管理器
+	private symbolCacheManager: SymbolCacheManager | null = null;
 
     /**
      * 判断是否为开发环境
@@ -80,8 +89,10 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
         }
     }
     
-    constructor() {
-        const extention = extensions.getExtension('vscode.hlsl');
+	constructor(symbolCacheManager?: SymbolCacheManager | null) {
+		this.symbolCacheManager = symbolCacheManager || null;
+		
+		const extention = extensions.getExtension('vscode.hlsl');
         if (extention && extention.packageJSON 
             && extention.packageJSON.contributes
             && extention.packageJSON.contributes.languages) {
@@ -95,6 +106,70 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
         
         // Keep only unique entries
         this._hlslPattern = [...new Set(this._hlslPattern)];
+
+        // 监听文件变化，清除相关缓存
+        this._disposables.push(
+            workspace.onDidChangeTextDocument(e => {
+                if (this.isHLSLFile(e.document.fileName)) {
+                    this.invalidateCache();
+                }
+            }),
+            workspace.onDidSaveTextDocument(doc => {
+                if (this.isHLSLFile(doc.fileName)) {
+                    this.invalidateCache();
+                }
+            }),
+            workspace.onDidDeleteFiles(() => {
+                this.invalidateCache();
+            }),
+            workspace.onDidCreateFiles(() => {
+                this.invalidateCache();
+            })
+        );
+    }
+
+    /**
+     * 检查文件是否为 HLSL 文件
+     */
+    private isHLSLFile(fileName: string): boolean {
+        return this._hlslPattern.some(ext => fileName.endsWith(ext));
+    }
+
+    /**
+     * 清除缓存
+     */
+    private invalidateCache(): void {
+        this.devLog(`[Cache] Invalidating symbol cache`);
+        this.symbolCache.clear();
+    }
+
+    /**
+     * 获取缓存的符号
+     */
+    private getCachedSymbols(cacheKey: string): SymbolInformation[] | null {
+        const cached = this.symbolCache.get(cacheKey);
+        if (cached) {
+            const age = Date.now() - cached.timestamp;
+            if (age < this.CACHE_TTL) {
+                this.devLog(`[Cache] Hit (age: ${age}ms)`);
+                return cached.symbols;
+            } else {
+                this.devLog(`[Cache] Expired (age: ${age}ms)`);
+                this.symbolCache.delete(cacheKey);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 缓存符号
+     */
+    private setCachedSymbols(cacheKey: string, symbols: SymbolInformation[]): void {
+        this.symbolCache.set(cacheKey, {
+            symbols: symbols,
+            timestamp: Date.now()
+        });
+        this.devLog(`[Cache] Stored ${symbols.length} symbols`);
     }
 
     public dispose(){
@@ -269,7 +344,22 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
     public provideWorkspaceSymbols(query: string, token: CancellationToken): Thenable<SymbolInformation[]> {
 
         return new Promise<SymbolInformation[]>((resolve, reject) => {
+            const startTime = Date.now();
+            this.devLog(`[Performance] ========== Workspace Symbol Search Started ==========`);
+            this.devLog(`[Symbol] Query: "${query}"`);
+
             let results: SymbolInformation[] = [];
+
+            // 检查缓存（仅对空查询使用缓存，因为空查询会返回所有符号）
+            if (!query || query.trim() === '') {
+                const cacheKey = this.CACHE_KEY_PREFIX + 'all';
+                const cached = this.getCachedSymbols(cacheKey);
+                if (cached) {
+                    this.devLog(`[Performance] ========== Total time: ${Date.now() - startTime}ms (cached) ==========`);
+                    resolve(cached);
+                    return;
+                }
+            }
 
             if (workspace.workspaceFolders) {
                 for (const folder of workspace.workspaceFolders) {
@@ -325,14 +415,15 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
                         try {
                             const kind = entry.kind;
                             const searchPattern = entry.pattern;
+                            const kindStartTime = Date.now();
 
                             // 使用全面的转义函数
                             const escapedPattern = escapeRegExpForShell(searchPattern);
                             this.devLog(`[Symbol] Searching ${SymbolKind[kind]}`);
                             
-                            // 添加重试机制和容错处理
+                            // 策略4: 减少 Module 搜索的重试次数（从4次降到1次）
                             let retryCount = 0;
-                            const maxRetries = 3;
+                            const maxRetries = (kind === SymbolKind.Module) ? 0 : 2; // Module 不重试，其他类型最多重试2次
                             let success = false;
                             
                             while (retryCount <= maxRetries && !success) {
@@ -366,6 +457,7 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
                                     if (matchCount > 0) {
                                         this.devLog(`[Symbol] ✓ Found ${matchCount} ${SymbolKind[kind]} symbols`);
                                     }
+                                    this.devLog(`[Performance] ${SymbolKind[kind]} search: ${Date.now() - kindStartTime}ms`);
                                     success = true;
                                 } catch (execErr: any) {
                                     retryCount++;
@@ -410,6 +502,7 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
                                             if (matchCount > 0) {
                                                 this.devLog(`[Symbol] ✓ Found ${matchCount} symbols (fallback)`);
                                             }
+                                            this.devLog(`[Performance] ${SymbolKind[kind]} fallback search: ${Date.now() - kindStartTime}ms`);
                                             success = true; // 即使是简化模式也算成功
                                         } catch (fallbackErr: any) {
                                             this.devLog(`[Symbol] ✗ Fallback failed`);
@@ -427,6 +520,15 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
                 }
 
             }
+
+            // 缓存结果（仅对空查询缓存）
+            if (!query || query.trim() === '') {
+                const cacheKey = this.CACHE_KEY_PREFIX + 'all';
+                this.setCachedSymbols(cacheKey, results);
+            }
+
+            const totalTime = Date.now() - startTime;
+            this.devLog(`[Performance] ========== Total time: ${totalTime}ms, Found: ${results.length} symbols ==========`);
 
             resolve(results);
         });

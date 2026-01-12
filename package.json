@@ -2,7 +2,7 @@
   "name": "unityshader",
   "displayName": "Unity/Unreal Shader",
   "description": "Unity and Unreal Shader language support for VS Code - syntax highlighting, code completion, hover tips and more for .shader, .cginc, .hlsl, .compute, .usf, .ush files",
-  "version": "0.1.3",
+  "version": "0.1.6",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -119,6 +119,14 @@
       {
         "command": "unityshader.switchEngine",
         "title": "Unity Shader: Switch Engine Type"
+      },
+      {
+        "command": "unityshader.buildSymbolCache",
+        "title": "Unity Shader: Build Symbol Cache"
+      },
+      {
+        "command": "unityshader.clearSymbolCache",
+        "title": "Unity Shader: Clear Symbol Cache"
       }
     ],
     "snippets": [

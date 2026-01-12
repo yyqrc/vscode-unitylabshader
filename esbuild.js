@@ -4,6 +4,7 @@ const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
 
 async function main() {
+	// 构建主扩展文件
 	const ctx = await esbuild.context({
 		entryPoints: ['src/extension.ts'],
 		bundle: true,
@@ -20,11 +21,30 @@ async function main() {
 			esbuildProblemMatcherPlugin,
 		],
 	});
+	
+	// 构建 Worker 文件（打包所有依赖）
+	const workerCtx = await esbuild.context({
+		entryPoints: ['src/cache/symbolParserWorker.ts'],
+		bundle: true, // 打包依赖模块
+		format: 'cjs',
+		minify: production,
+		sourcemap: !production,
+		sourcesContent: false,
+		platform: 'node',
+		outfile: 'out/cache/symbolParserWorker.js',
+		external: ['vscode'], // 排除 vscode 模块
+		logLevel: 'silent',
+		plugins: [esbuildProblemMatcherPlugin],
+	});
+	
 	if (watch) {
 		await ctx.watch();
+		await workerCtx.watch();
 	} else {
 		await ctx.rebuild();
+		await workerCtx.rebuild();
 		await ctx.dispose();
+		await workerCtx.dispose();
 	}
 }
 

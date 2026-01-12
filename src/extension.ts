@@ -5,6 +5,7 @@ import * as path from 'path';
 
 import { setHlslExtensions, setRgPath } from './common';
 import { EngineContextManager } from './common/engineContext';
+import { SymbolCacheManager } from './cache';
 
 import HLSLHoverProvider from './hlsl/hoverProvider';
 import HLSLCompletionItemProvider from './hlsl/completionProvider';
@@ -36,17 +37,41 @@ function getVscodeRgPath(): string {
     return path.join(vscodeAppRoot, 'node_modules', '@vscode', 'ripgrep', 'bin', rgExe);
 }
 
+// 全局符号缓存管理器实例
+let symbolCacheManager: SymbolCacheManager | null = null;
+
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 
-    // 控制台输出激活信息
-    console.log('Unity Shader extension is now active!');
+	// 控制台输出激活信息
+	console.log('Unity Shader extension is now active!');
 
-    // 初始化引擎上下文管理器
-    const engineContext = EngineContextManager.getInstance();
-    engineContext.initialize(context);
-    console.log('Engine context manager initialized');
+	// 初始化引擎上下文管理器
+	const engineContext = EngineContextManager.getInstance();
+	engineContext.initialize(context);
+	console.log('Engine context manager initialized');
+
+	// 初始化符号缓存管理器
+	if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+		const workspacePath = vscode.workspace.workspaceFolders[0].uri.fsPath;
+		symbolCacheManager = new SymbolCacheManager(context);
+		
+		// 异步初始化缓存（不阻塞扩展激活）
+		symbolCacheManager.initialize(workspacePath).then(() => {
+			console.log('Symbol cache manager initialized');
+		}).catch((error) => {
+			console.error('Failed to initialize symbol cache manager:', error);
+		});
+		
+		context.subscriptions.push({
+			dispose: () => {
+				if (symbolCacheManager) {
+					symbolCacheManager.dispose();
+				}
+			}
+		});
+	}
 
     // 初始化 ripgrep 路径（使用 VS Code 内置的 ripgrep）
     const rgPath = getVscodeRgPath();
@@ -81,16 +106,26 @@ export function activate(context: vscode.ExtensionContext) {
     // 注册引用查找提供器
     context.subscriptions.push(vscode.languages.registerReferenceProvider(documentSelector, new HLSLReferenceProvider()));
 
-    // 注册符号提供器（文档符号 + 工作区符号）
-    let symbolProvider = new HLSLSymbolProvider();
-    context.subscriptions.push(vscode.languages.registerDocumentSymbolProvider(documentSelector, symbolProvider));
-    context.subscriptions.push(vscode.languages.registerWorkspaceSymbolProvider(symbolProvider));
+	// 注册符号提供器（文档符号 + 工作区符号）
+	let symbolProvider = new HLSLSymbolProvider(symbolCacheManager);
+	context.subscriptions.push(vscode.languages.registerDocumentSymbolProvider(documentSelector, symbolProvider));
+	context.subscriptions.push(vscode.languages.registerWorkspaceSymbolProvider(symbolProvider));
 
-    // 注册定义跳转提供器
-    let definitionProvider = new HLSLDefinitionProvider();
-    context.subscriptions.push(vscode.languages.registerDefinitionProvider(documentSelector, definitionProvider));
-    context.subscriptions.push(vscode.languages.registerImplementationProvider(documentSelector, definitionProvider));
-    context.subscriptions.push(vscode.languages.registerTypeDefinitionProvider(documentSelector, definitionProvider));
+	// 注册定义跳转提供器
+	let definitionProvider = new HLSLDefinitionProvider(symbolCacheManager);
+	context.subscriptions.push(vscode.languages.registerDefinitionProvider(documentSelector, definitionProvider));
+	context.subscriptions.push(vscode.languages.registerImplementationProvider(documentSelector, definitionProvider));
+	context.subscriptions.push(vscode.languages.registerTypeDefinitionProvider(documentSelector, definitionProvider));
+    
+    // 异步预加载常用符号（不阻塞扩展激活）
+    setTimeout(() => {
+        if (definitionProvider && typeof (definitionProvider as any).preloadCommonSymbols === 'function') {
+            console.log('[Preload] Starting to preload common symbols...');
+            (definitionProvider as any).preloadCommonSymbols().catch((err: any) => {
+                console.error('[Preload] Failed to preload common symbols:', err);
+            });
+        }
+    }, 2000); // 延迟2秒，避免影响扩展启动速度
 
     // 注册折叠提供器（支持 #if/#else/#endif 分段折叠）
     context.subscriptions.push(vscode.languages.registerFoldingRangeProvider(documentSelector, new HLSLFoldingRangeProvider()));
@@ -183,6 +218,49 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }
     }
+
+    // 注册命令：构建符号缓存
+    context.subscriptions.push(
+        vscode.commands.registerCommand('unityshader.buildSymbolCache', async () => {
+            if (!symbolCacheManager) {
+                vscode.window.showErrorMessage('Symbol cache manager is not initialized');
+                return;
+            }
+            
+            try {
+                await vscode.window.withProgress(
+                    {
+                        location: vscode.ProgressLocation.Notification,
+                        title: 'Rebuilding symbol cache...',
+                        cancellable: false,
+                    },
+                    async () => {
+                        await symbolCacheManager!.rebuildCache();
+                    }
+                );
+                vscode.window.showInformationMessage('Symbol cache rebuilt successfully');
+            } catch (error) {
+                vscode.window.showErrorMessage(`Failed to rebuild symbol cache: ${error}`);
+            }
+        })
+    );
+
+    // 注册命令：清除符号缓存
+    context.subscriptions.push(
+        vscode.commands.registerCommand('unityshader.clearSymbolCache', async () => {
+            if (!symbolCacheManager) {
+                vscode.window.showErrorMessage('Symbol cache manager is not initialized');
+                return;
+            }
+            
+            try {
+                await symbolCacheManager.clearCache();
+                vscode.window.showInformationMessage('Symbol cache cleared successfully');
+            } catch (error) {
+                vscode.window.showErrorMessage(`Failed to clear symbol cache: ${error}`);
+            }
+        })
+    );
 
 }
 
