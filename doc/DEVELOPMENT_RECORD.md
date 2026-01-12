@@ -4,365 +4,203 @@
 >
 > 每个阶段完成后都在该目录中进行验收测试。
 
-## 📊 开发阶段概览
-
-| 阶段 | 内容 | 预计工作量 | 实际工作量 | 状态 | 开始日期 | 完成日期 |
-|------|------|-----------|------------|------|----------|----------|
-| Phase 1 | 基础配置改造 | 1-2h | ~1.5h | ✅ 已完成 | 2025-01-09 | 2025-01-09 |
-| Phase 2 | 语法高亮 | 2-4h | ~3h | ✅ 已完成 | 2025-01-09 | 2025-01-09 |
-| Phase 3 | 代码补全 | 3-4h | ~3.5h | ✅ 已完成 | 2025-01-09 | 2025-01-09 |
-| Phase 4 | 悬停提示 | 2-3h | ~2h | ✅ 已完成 | 2025-01-09 | 2025-01-09 |
-| Phase 5 | 符号与导航 | 2-3h | ~2.5h | ✅ 已完成 | 2025-01-09 | 2025-01-09 |
-| Phase 6 | 代码片段 | 1-2h | ~1h | ✅ 已完成 | 2025-01-09 | 2025-01-09 |
-| Phase 7 | URP 支持 | 2-3h | ~2h | ✅ 已完成 | 2025-01-09 | 2025-01-09 |
-| Phase 8 | 优化与发布 | 1-2h | ~1.5h | ✅ 已完成 | 2025-01-09 | 2025-01-09 |
-
-**总计**: 14-20h 预计，~15h 实际完成
-
-## 📝 Phase 1: 基础配置改造 (已完成 ✅)
-
-### ✅ 1.1 修改 package.json
-**修改内容**:
-- 插件名称: `unrealshader` → `unityshader`
-- 显示名称: "Unreal Shader" → "Unity Shader"
-- 描述信息: 更新为 Unity Shader 语言支持描述
-- 语言 ID: `unrealshader` → `unityshader`
-- 支持的文件扩展名:
-  - `.shader` (Unity ShaderLab)
-  - `.cginc` (CG include)
-  - `.hlsl` (HLSL)
-  - `.hlsli` (HLSL include)
-  - `.compute` (Compute Shader)
-  - `.cg` (CG 文件)
-- 配置项前缀: `hlsl.` → `unityshader.`
-- 更新关键字、分类、图标等
-
-**验收标准**:
-✓ 在 VS Code 中打开测试目录的 .shader/.hlsl/.cginc/.compute 文件
-✓ 文件右下角显示语言类型为 "Unity Shader"
-✓ 插件成功激活（无错误）
-
-**测试文件**:
-- `/Users/ashiqi/Documents/UGit/CGameEditorProject/LookDevProject/Assets/Shaders/BuiltIn/Internal-Flare.shader`
-- `/Users/ashiqi/Documents/UGit/CGameEditorProject/LookDevProject/Assets/Shaders/CODM/Colors.hlsl`
-- `/Users/ashiqi/Documents/UGit/CGameEditorProject/LookDevProject/Assets/Shaders/Includes/HLSLSupport.cginc`
-- `/Users/ashiqi/Documents/UGit/CGameEditorProject/LookDevProject/Assets/Shaders/CODM/ComputeShader/UpdateVRSAttachment.compute`
-
-### ✅ 1.2 修改 extension.ts
-**修改内容**:
-- 更新语言 ID 引用
-- 更新 documentSelector
-- 确保激活条件正确
-- 清理 Unreal 相关引用
-
-**验收标准**:
-✓ 打开任意支持的文件类型，插件正常激活
-✓ 控制台无错误输出
-
-### ✅ 1.3 修改 language-configuration.json
-**修改内容**:
-- 确保注释配置正确（`//` 和 `/* */`）
-- 确保括号匹配正确
-- 添加 ShaderLab 特有的括号配置
-
-**验收标准**:
-✓ 输入 `//` 可以正常注释
-✓ 选中代码按 Cmd+/ 可以切换注释
-✓ 括号自动配对正常
-
-## 📝 Phase 2: 语法高亮 (已完成 ✅)
-
-### ✅ 2.1 创建/修改 ShaderLab 语法高亮
-**修改内容**:
-- 重命名 `unrealshader.tmLanguage.json` → `unityshader.tmLanguage.json`
-- 添加 ShaderLab 结构关键字高亮
-- 添加 ShaderLab 代码块高亮（CGPROGRAM/ENDCG 等）
-- 添加属性类型高亮（2D、Color、Float 等）
-- 添加渲染状态关键字高亮（Blend、Cull、ZWrite 等）
-- 添加 Tags 高亮（Tags、RenderType、Queue 等）
-- 添加其他关键字高亮（LOD、FallBack、UsePass 等）
-
-**验收标准**:
-✓ 打开 .shader 文件，ShaderLab 关键字有颜色高亮
-✓ Properties 块中的属性类型有正确高亮
-✓ CGPROGRAM/ENDCG 块有正确高亮
-✓ Tags 块内容有正确高亮
-
-**测试文件**:
-- `/Users/ashiqi/Documents/UGit/CGameEditorProject/LookDevProject/Assets/Shaders/BuiltIn/Mobile/Mobile-Diffuse.shader`
-
-### ✅ 2.2 保留并优化 HLSL/CG 语法高亮
-**修改内容**:
-- 确保 HLSL 类型高亮正常（float、half、int、uint 等）
-- 确保 HLSL 关键字高亮正常（struct、cbuffer、return 等）
-- 确保预处理器高亮正常（#include、#define、#pragma 等）
-- 确保函数调用高亮正常
-- 确保数字、字符串高亮正常
-- 确保注释高亮正常（单行/多行）
-
-**验收标准**:
-✓ 打开 .hlsl 文件，所有 HLSL 语法元素有正确高亮
-✓ 打开 .cginc 文件，所有 CG 语法元素有正确高亮
-✓ .shader 文件中 CGPROGRAM 块内的 HLSL 代码有正确高亮
-
-**测试文件**:
-- `/Users/ashiqi/Documents/UGit/CGameEditorProject/LookDevProject/Assets/Shaders/CODM/Colors.hlsl`
-- `/Users/ashiqi/Documents/UGit/CGameEditorProject/LookDevProject/Assets/Shaders/Includes/HLSLSupport.cginc`
-
-### ✅ 2.3 更新 package.json 中的语法配置
-**修改内容**:
-- 更新 grammars 配置指向新的语法文件
-- 确保 scopeName 正确
-- 确保文件关联正确
-
-**验收标准**:
-✓ 所有支持的文件类型都有正确的语法高亮
-✓ 嵌入的 HLSL 代码块有正确高亮
-
-## 📝 Phase 3: 代码补全 (已完成 ✅)
-
-### ✅ 3.1 添加 Unity 内置变量定义
-**实现内容**:
-- 创建 `src/unity/unityGlobals.ts` 文件
-- 添加变换矩阵变量（UNITY_MATRIX_MVP、UNITY_MATRIX_M 等）
-- 添加相机参数（_WorldSpaceCameraPos、_ProjectionParams 等）
-- 添加时间变量（_Time、_SinTime、_CosTime 等）
-- 添加光照变量（_WorldSpaceLightPos0、_LightColor0 等）
-- 添加雾效变量（unity_FogColor、unity_FogParams 等）
-- 添加环境光/SH 变量
-
-**验收标准**:
-✓ 在 CGPROGRAM 块内输入 "UNITY_" 显示矩阵变量补全
-✓ 在 CGPROGRAM 块内输入 "_Time" 显示时间变量补全
-✓ 补全项包含变量类型和说明
-
-### ✅ 3.2 添加 Unity 内置函数定义
-**实现内容**:
-- 添加空间转换函数（UnityObjectToWorldNormal、UnityObjectToClipPos 等）
-- 添加纹理采样宏/函数（tex2D、SAMPLE_TEXTURE2D 等）
-- 添加光照计算函数（UnityWorldSpaceLightDir、Shade4PointLights 等）
-- 添加阴影相关宏（SHADOW_COORDS、TRANSFER_SHADOW 等）
-- 添加雾效相关宏（UNITY_FOG_COORDS、UNITY_TRANSFER_FOG 等）
-- 添加工具函数（DecodeFloatRGBA、LinearToGammaSpace 等）
-
-**验收标准**:
-✓ 输入 "UnityObject" 显示空间转换函数补全
-✓ 输入 "tex2D" 显示纹理采样函数补全
-✓ 输入 "SHADOW_" 显示阴影相关宏补全
-✓ 补全项包含函数签名和参数说明
-
-### ✅ 3.3 添加 ShaderLab 补全
-**实现内容**:
-- 添加 ShaderLab 结构关键字补全（Shader、Properties、SubShader、Pass 等）
-- 添加属性类型补全（2D、Color、Float、Int、Range 等）
-- 添加渲染状态补全（Blend、BlendOp、Cull、ZWrite 等）
-- 添加 Tags 补全（Tags、RenderType、Queue、LightMode 等）
-- 添加 pragma 指令补全（#pragma vertex、#pragma fragment 等）
-
-**验收标准**:
-✓ 在 Properties 块内输入属性类型有补全
-✓ 在 Pass 块内输入 "Blend" 有补全
-✓ 输入 "#pragma " 有指令补全
-
-### ✅ 3.4 修改 completionProvider.ts
-**实现内容**:
-- 引入 Unity 全局定义
-- 实现 ShaderLab 上下文检测（判断当前在 CGPROGRAM 内还是外）
-- 根据上下文提供不同的补全项
-- 确保保留原有 HLSL 基础补全
-
-**验收标准**:
-✓ 在 ShaderLab 区域和 HLSL 代码区域分别提供正确的补全
-✓ 所有补全项按相关性排序
-✓ 补全速度流畅，无明显延迟
-
-## 📝 Phase 4: 悬停提示 (已完成 ✅)
-
-### ✅ 4.1 添加 Unity 函数/变量悬停提示
-**实现内容**:
-- 为 Unity 内置变量添加悬停提示（类型 + 说明）
-- 为 Unity 内置函数添加悬停提示（签名 + 参数说明 + 返回值）
-- 添加 Unity 官方文档链接
-
-**验收标准**:
-✓ 鼠标悬停在 "UNITY_MATRIX_MVP" 上显示说明
-✓ 鼠标悬停在 "UnityObjectToClipPos" 上显示函数签名和说明
-✓ 悬停提示包含参数类型信息
-
-### ✅ 4.2 添加 ShaderLab 悬停提示
-**实现内容**:
-- 为 ShaderLab 关键字添加悬停提示
-- 为渲染状态添加悬停提示（如 Blend 的各种模式说明）
-- 为 Tags 值添加悬停提示
-
-**验收标准**:
-✓ 鼠标悬停在 "Blend" 上显示混合模式说明
-✓ 鼠标悬停在 "ZWrite" 上显示深度写入说明
-
-### ✅ 4.3 修改 hoverProvider.ts
-**实现内容**:
-- 引入 Unity 全局定义
-- 实现 ShaderLab 关键字识别
-- 保留原有 HLSL 悬停提示
-- 添加中英双语描述，移除外部文档链接依赖
-
-**验收标准**:
-✓ HLSL 内置函数悬停提示正常
-✓ Unity 特有函数悬停提示正常
-✓ ShaderLab 关键字悬停提示正常
-
-## 📝 Phase 5: 符号与导航 (已完成 ✅)
-
-### ✅ 5.1 修改符号识别 (symbolProvider.ts)
-**实现内容**:
-- 添加 ShaderLab 结构识别（Shader、Properties、SubShader、Pass 等）
-- 保留原有 HLSL 符号识别（函数、结构体、cbuffer、变量等）
-- 支持大纲视图显示 Shader 结构层次
-
-**验收标准**:
-✓ 打开 .shader 文件，大纲视图显示 Shader 结构层次
-✓ 大纲视图显示 Properties、SubShader、Pass 等块
-✓ CGPROGRAM 内的函数在大纲中正确显示
-
-**测试**: 打开测试文件，按 `Cmd+Shift+O` 查看符号列表
-
-### ✅ 5.2 修改定义跳转 (definitionProvider.ts)
-**实现内容**:
-- 确保函数定义跳转正常
-- 确保变量定义跳转正常
-- 添加 #include 文件跳转支持
-- 添加 FallBack Shader 跳转支持
-
-**验收标准**:
-✓ 在函数调用处按 F12 可以跳转到函数定义
-✓ 在变量使用处按 F12 可以跳转到变量定义
-✓ 在 #include "xxx.cginc" 上按 F12 可以跳转到对应文件
-✓ 在 FallBack "Diffuse" 上按 F12 可以跳转到对应 Shader
-
-**新增功能说明**:
-1. **#include 跳转**:
-   - 支持相对路径（相对于当前文件）
-   - 支持工作区根目录路径
-   - 支持文件名搜索（使用 ripgrep）
-   
-2. **FallBack 跳转**:
-   - 搜索工作区中所有 .shader 文件
-   - 查找匹配的 Shader "xxx" 定义
-   - 支持多个匹配结果
-
-### ✅ 5.3 修改引用查找 (referenceProvider.ts)
-**实现内容**:
-- 确保查找函数引用正常
-- 确保查找变量引用正常
-- 支持当前文档内的引用查找
-
-**验收标准**:
-✓ 右键"查找所有引用"可以找到当前文档内的所有引用
-
-## 📝 Phase 6: 代码片段 (已完成 ✅)
-
-### ✅ 6.1 创建 snippets/unityshader.json
-**实现内容**:
-- 添加基础 Shader 模板 (`shader`)
-- 添加 Surface Shader 模板 (`surfshader`)
-- 添加 Unlit Shader 模板 (`unlitshader`)
-- 添加 Pass 模板 (`pass`)
-- 添加 Properties 模板 (`properties`)
-- 添加 CGPROGRAM 块模板 (`cgprogram`)
-- 添加 HLSLPROGRAM 块模板 (`hlslprogram`)
-- 添加 struct 模板 (`struct`, `v2f`, `appdata`)
-- 添加常用 pragma 指令模板
-- 添加 URP Shader 模板 (`urpunlit`, `urplit`)
-
-**验收标准**:
-✓ 新建 .shader 文件，输入 "shader" 回车生成基础模板
-✓ 输入 "cgprogram" 回车生成 CGPROGRAM 块
-✓ 输入 "v2f" 回车生成顶点到片元结构体
-
-### ✅ 6.2 更新 package.json 注册代码片段
-**实现内容**:
-- 在 contributes.snippets 中注册片段文件
-- 确保片段对所有支持的文件类型生效（.shader, .hlsl, .cginc, .compute）
-
-**验收标准**:
-✓ 在 .shader、.cginc、.hlsl、.compute 文件中都可以使用代码片段
-✓ 代码片段有正确的描述和占位符
-
-## 📝 Phase 7: URP 支持 (已完成 ✅)
-
-### ✅ 7.1 创建 src/unity/urpGlobals.ts
-**实现内容**:
-- 添加 URP 常用函数（TransformObjectToHClip、GetMainLight 等）
-- 添加 URP 常用变量（_MainLightPosition、_MainLightColor 等）
-- 添加 URP 常用宏（_MAIN_LIGHT_SHADOWS、_ADDITIONAL_LIGHTS 等）
-- 添加 URP 常用 #include 路径提示
-
-**验收标准**:
-✓ 输入 "TransformObject" 显示 URP 空间变换函数补全
-✓ 输入 "GetMain" 显示 GetMainLight 补全
-✓ URP 函数有正确的悬停提示
-
-### ✅ 7.2 添加 URP Shader 代码片段
-**实现内容**:
-- 添加 URP Unlit Shader 模板 (`urpunlit`)
-- 添加 URP Lit Shader 模板 (`urplit`)
-- 添加 URP Include 模板
-
-**验收标准**:
-✓ 输入 "urpunlit" 回车生成完整的 URP Unlit Shader 模板
-✓ 输入 "urplit" 回车生成完整的 URP Lit Shader 模板
-
-### ✅ 7.3 添加配置项控制 URP 功能
-**实现内容**:
-- 添加 `unityshader.suggest.urp` 配置项
-- 实现根据配置启用/禁用 URP 补全
-
-**验收标准**:
-✓ 设置 "unityshader.suggest.urp": false 后，URP 相关补全不再显示
-✓ 设置 "unityshader.suggest.urp": true 后，URP 补全正常显示
-
-## 📝 Phase 8: 优化与发布 (已完成 ✅)
-
-### ✅ 8.1 代码清理与优化
-**实现内容**:
-- 删除所有 Unreal 相关代码和引用
-- 代码格式化和 lint 检查
-- 优化补全性能（延迟加载、缓存等）
-- 添加必要的错误处理
-- 更新文件路径和引用关系
-
-**验收标准**:
-✓ npm run lint 无错误
-✓ npm run compile 编译通过
-✓ 无 Unreal 相关代码残留
-✓ 插件激活速度 < 2s
-
-### ✅ 8.2 更新文档
-**实现内容**:
-- 更新 README.md，清晰描述插件功能
-- 更新 CHANGELOG.md，记录版本变化
-- 添加功能截图和演示 GIF
-- 添加安装和使用说明
-- 添加配置项说明
-
-**验收标准**:
-✓ README 包含完整的功能列表和使用示例
-✓ CHANGELOG 记录所有功能变更
-✓ 文档中包含安装步骤
-✓ 文档中包含配置选项说明
-
-### ✅ 8.3 测试与打包
-**实现内容**:
-- 在测试目录中进行完整功能测试
-- 测试各种文件类型（.shader, .hlsl, .cginc, .compute）
-- 确保所有核心功能在测试文件上正常工作
-- 准备插件打包配置文件
-
-**验收标准**:
-✓ 所有功能在测试文件上正常工作
-✓ 语法高亮、补全、悬停、符号导航等核心功能正常
-✓ 插件配置文件准备就绪（package.json, README, CHANGELOG 等）
-
+## � 开发阶段概览
+
+| 阶段 | 内容 | 状态 |
+|------|------|------|
+| Phase 1 | 基础配置改造 | ✅ 已完成 |
+| Phase 2 | 语法高亮 | ✅ 已完成 |
+| Phase 3 | 代码补全 | ✅ 已完成 |
+| Phase 4 | 悬停提示 | ✅ 已完成 |
+| Phase 5 | 符号与导航 | ✅ 已完成 |
+| Phase 6 | 代码片段 | ✅ 已完成 |
+| Phase 7 | URP 支持 | ✅ 已完成 |
+| Phase 8 | 优化与发布 | ✅ 已完成 |
+
+**所有基础功能开发完成**
+
+## Phase 1: 基础配置改造 (已完成)
+
+### 1.1 修改 package.json
+- 插件名称更新: `unrealshader` → `unityshader`
+- 支持的文件扩展名: `.shader`, `.cginc`, `.hlsl`, `.hlsli`, `.compute`, `.cg`
+- 配置项前缀更新: `hlsl.` → `unityshader.`
+- 更新描述和分类
+
+### 1.2 修改 extension.ts
+- 更新语言ID引用
+- 更新文档选择器
+- 清理Unreal相关引用
+
+### 1.3 修改 language-configuration.json
+- 配置注释支持 (`//` 和 `/* */`)
+- 括号匹配配置
+- ShaderLab特有配置
+
+## Phase 2: 语法高亮支持 (已完成)
+
+### 2.1 ShaderLab语法支持
+- 语法高亮文件重命名: `unrealshader.tmLanguage.json` → `unityshader.tmLanguage.json`
+- 添加ShaderLab结构关键字高亮: Shader、Properties、SubShader、Pass等
+- 添加ShaderLab代码块高亮: CGPROGRAM/ENDCG、HLSLPROGRAM/ENDHLSL等
+- 添加属性类型高亮: 2D、Color、Float、Range、Int等
+- 添加渲染状态高亮: Blend、Cull、ZWrite、ZTest等
+- 添加Tags高亮: Tags、RenderType、Queue、LightMode等
+- 添加其他关键字高亮: LOD、FallBack、UsePass、GrabPass等
+
+### 2.2 HLSL/CG语法保持
+- 保留原有的HLSL类型高亮: float、half、int、uint等
+- 保留HLSL关键字高亮: struct、cbuffer、return、if、for等
+- 预处理器高亮: #include、#define、#pragma等
+- 函数调用、数字、字符串、注释高亮保持
+
+### 2.3 语法配置更新
+- 更新package.json中的语法配置
+- 确保所有支持文件类型(.shader, .hlsl, .cginc, .compute, .cg)都能正确识别和高亮
+
+## Phase 3: 代码补全 (已完成)
+
+### 3.1 Unity内置变量补全
+- 添加变换矩阵变量: UNITY_MATRIX_MVP, UNITY_MATRIX_M, UNITY_MATRIX_V, UNITY_MATRIX_P, UNITY_MATRIX_VP等
+- 添加相机参数: _WorldSpaceCameraPos, _ProjectionParams等
+- 添加时间变量: _Time, _SinTime, _CosTime, unity_DeltaTime等
+- 添加光照变量: _WorldSpaceLightPos0, _LightColor0等
+- 添加雾效变量: unity_FogColor, unity_FogParams等
+- 添加环境光/SH变量: unity_AmbientSky, unity_SHCoefficients等
+
+### 3.2 Unity内置函数补全
+- 空间转换函数: UnityObjectToClipPos, UnityObjectToWorldNormal等
+- 纹理采样函数: tex2D, SAMPLE_TEXTURE2D, SAMPLE_TEXTURE2D_LOD等
+- 光照计算函数: UnityWorldSpaceLightDir, Shade4PointLights等
+- 阴影相关宏: SHADOW_COORDS, TRANSFER_SHADOW, SHADOW_ATTENUATION等
+- 雾效相关宏: UNITY_FOG_COORDS, UNITY_TRANSFER_FOG, UNITY_APPLY_FOG等
+- 工具函数: DecodeFloatRGBA, LinearToGammaSpace等
+
+### 3.3 ShaderLab结构补全
+- ShaderLab关键字: Shader, Properties, SubShader, Pass等
+- 属性类型: 2D, Color, Float, Int, Range等
+- 渲染状态: Blend, Cull, ZWrite, ZTest, Offset等
+- Tags: RenderType, Queue, LightMode, DisableBatching等
+- pragma指令: #pragma vertex, #pragma fragment, #pragma target等
+
+### 3.4 补全上下文识别
+- 自动识别当前代码位置（ShaderLab区域还是CGPROGRAM/HLSL代码区域）
+- 根据上下文提供不同类型的补全建议
+- 保留原生HLSL基础补全（标准函数、类型、关键字等）
+- 所有补全项包含类型信息和使用说明
+
+## Phase 4: 悬停提示 (已完成)
+
+### 4.1 Unity内置函数变量说明
+- 内置变量悬停: UNITY_MATRIX_MVP, _Time, _WorldSpaceCameraPos等变量显示类型和用途说明
+- 内置函数悬停: UnityObjectToClipPos, tex2D等函数显示签名、参数说明和返回值
+- 无需网络连接的中英文混合描述（不依赖外部文档链接）
+
+### 4.2 ShaderLab关键字说明
+- 渲染状态说明: Blend, Cull, ZWrite, ZTest等状态显示详细功能说明和使用方法
+- Tags说明: RenderType, Queue, LightMode等tag显示语义和使用场景
+- 属性类型说明: 2D, Color, Float等属性类型显示参数格式和使用方式
+- ShaderLab结构说明: Shader, Properties, SubShader, Pass等关键字显示作用和使用方法
+
+### 4.3 悬停上下文识别
+- 自动识别符号类型: 自动识别变量、函数、关键字等不同符号类型
+- 上下文感知: 在不同代码区域（ShaderLab、CGPROGRAM、HLSL等）显示相应说明
+- 支持复杂类型: 结构体、宏定义、预处理指令等都能显示说明信息
+
+## Phase 5: 符号与导航 (已完成)
+
+### 5.1 符号识别和大纲视图
+- 识别ShaderLab结构: Shader、Properties、SubShader、Pass等结构在大纲视图中正确显示
+- 识别CGPROGRAM块: CGPROGRAM/ENDCG代码块内的函数、结构体、变量等符号
+- 识别HLSL代码: 在.hlsl/.cginc文件中识别函数、结构体、cbuffer等符号
+- 层次结构显示: 大纲视图显示Shader的完整结构层次（文件→Shader→SubShader→Pass等）
+- 支持Cmd/Ctrl+Shift+O打开符号列表，快速跳转
+
+### 5.2 定义跳转
+- 函数定义跳转: 在函数调用处按F12跳转到函数定义
+- 变量定义跳转: 在变量使用处按F12跳转到变量定义
+- #include跳转: 在#include指令处按F12跳转到对应文件，支持相对路径和绝对路径
+- FallBack跳转: 在FallBack "ShaderName"处按F12跳转到对应Shader文件定义
+- ShaderName跳转: 在"UsePass"指令中支持跳转到Pass定义位置
+
+### 5.3 引用查找
+- 查找所有引用: 右键变量/函数名选择"查找所有引用"，找到当前文档内的所有使用位置
+- 引用计数显示: 在状态栏显示符号的引用次数
+- 支持当前文件内引用查找: 在当前文件内查找变量、函数等的所有引用位置
+
+## Phase 6: 代码片段 (已完成)
+
+### 6.1 代码片段模板库
+**基础Shader模板**:
+- `shader`: 标准ShaderLab模板
+- `surfshader`: Surface Shader模板
+- `unlitshader`: Unlit Shader模板
+
+**结构块模板**:
+- `properties`: Properties属性块模板
+- `cgprogram`: CGPROGRAM代码块模板
+- `hlslprogram`: HLSLPROGRAM代码块模板
+- `pass`: Pass渲染通道模板
+
+**常用类型模板**:
+- `struct`: 结构体定义模板
+- `v2f`: 顶点到片元结构体模板
+- `appdata`: 顶点输入结构体模板
+
+**渲染管线和指令**:
+- URP模板: `urpunlit` (URP无光照Shader), `urplit` (URP光照Shader)
+- pragma指令: 常用指令模板
+
+### 6.2 代码片段功能特性
+- 所有支持的ShaderLab和HLSL文件类型均可使用代码片段（.shader, .hlsl, .cginc, .compute, .cg）
+- 智能光标定位: 生成代码后光标自动定位到关键位置进行编辑
+- 占位符系统: 支持${1:label}格式的占位符，方便快速编辑
+- 描述系统: 每个代码片段都有简短描述，在代码补全列表中显示
+- 触发字符: 输入简短的触发字符（如shader、cgprogram等）即可调用对应模板
+
+## Phase 7: URP 支持 (已完成)
+
+### 7.1 URP 内置功能支持
+**空间变换函数**: TransformObjectToHClip, TransformWorldToHClip, TransformWorldToObject, TransformWViewToHClip等
+**光照计算函数**: GetMainLight, GetAdditionalLights, MixRealtimeAndBakedGI, AddFog, ApplyFog等
+**光照数据变量**: _MainLightPosition, _MainLightColor, _AdditionalLightsCount, _AdditionalLightsBuffer等
+**表面着色器数据**: SurfaceData, InputData等结构体支持
+**URP 宏定义**: _MAIN_LIGHT_SHADOWS, _MAIN_LIGHT_SHADOWS_CASCADE, _ADDITIONAL_LIGHTS, _ADDITIONAL_LIGHT_SHADOWS等
+**URP 头文件**: 支持 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/..." 路径补全
+
+### 7.2 URP Shader 模板
+**URP Unlit Shader**: `urpunlit` 快速生成URP无光照Shader模板，包含顶点着色器和片元着色器，内置URP函数和宏定义
+**URP Lit Shader**: `urplit` 快速生成URP光照Shader模板，包含光照Pass设置，内置URP表面着色器函数和数据结构
+
+### 7.3 URP 功能配置
+- 配置项: `unityshader.suggest.urp`（布尔值，默认true）
+- 控制功能: 当为true时，提供URP函数/变量/宏的代码补全和悬停提示
+- 配置场景: 主要用于兼容Built-In管线开发环境，避免不必要的URP补全干扰
+- 默认设置: 对大多数URP项目保持开启，对Built-In项目可选择性关闭
+## Phase 8: 优化与发布 (已完成)
+
+### 8.1 代码清理与性能优化
+**代码清理**: 删除所有Unreal相关的代码残留、注释、配置项和文件引用，确保插件纯Unity相关功能。
+
+**代码质量**: 使用ESLint进行代码格式化、lint检查和代码风格统一，遵循TypeScript/JavaScript编码规范。
+
+**性能优化**: 实现代码补全延迟加载、缓存机制减少重复计算，优化插件启动速度，确保激活时间<2秒。
+
+**错误处理**: 添加必要的try-catch块和异常处理机制，增强插件稳定性。
+
+### 8.2 文档完善
+**README.md**: 更新插件功能描述、使用示例、配置选项说明，添加功能截图和演示GIF。
+
+**CHANGELOG.md**: 创建版本变更记录，记录从Unreal到Unity转换的所有功能变更。
+
+**安装和使用指南**: 添加插件安装步骤、基础使用指南、常见问题解答等。
+
+### 8.3 测试验证
+**核心功能测试**: 在测试项目目录中，对所有支持的Shader文件类型（.shader, .hlsl, .cginc, .compute, .cg）进行功能验证。
+
+**功能完整性验证**: 确保语法高亮、代码补全、悬停提示、符号导航、定义跳转、代码片段等核心功能在所有文件类型上正常工作。
+
+**插件打包准备**: 准备VS Code插件打包配置（package.json等元数据），完成版本号设置和发布准备。
 ## 📁 文件修改清单（已完成）
 
 ### ✅ 修改的现有文件:
@@ -411,98 +249,20 @@ syntaxes/unityshader.tmLanguage.json      # 新语法文件
 3. `/Assets/Shaders/Includes/HLSLSupport.cginc` - CG 语法高亮正常
 4. `/Assets/Shaders/CODM/ComputeShader/UpdateVRSAttachment.compute` - Compute Shader 支持正常
 
-### 验收标准达成:
-- [x] 所有支持的文件类型正确识别为 "Unity Shader"
-- [x] ShaderLab 关键字高亮正常
-- [x] HLSL/CG 代码高亮正常
-- [x] Unity 内置变量/函数补全正常
-- [x] 悬停提示显示函数签名和描述
-- [x] 大纲视图显示正确的结构层次
-- [x] #include 文件跳转正常
-- [x] 代码片段生成正常
-- [x] URP 支持功能正常
+## 功能验收测试
 
----
+### 核心功能验证
+- ✅ 所有支持文件类型(.shader/.hlsl/.cginc/.compute)正确识别为 "Unity Shader"
+- ✅ ShaderLab 关键字和结构语法高亮正常
+- ✅ HLSL/CG 代码语法高亮和代码补全正常
+- ✅ Unity 内置函数/变量悬停提示正常
+- ✅ 符号导航和大纲视图功能正常
+- ✅ 代码片段生成功能正常
+- ✅ URP 函数/变量支持和补全正常
 
-## 📋 关键验收测试用例（简化版）
-
-### 1. 语法高亮测试
-```
-# 测试文件: Mobile-Diffuse.shader
-✓ Shader 关键字高亮
-✓ Properties 块高亮
-✓ SubShader/Pass 块高亮
-✓ CGPROGRAM/ENDCG 块高亮
-✓ Tags 块高亮
-✓ HLSL 代码高亮
-```
-
-### 2. 代码补全测试
-```
-# 在 CGPROGRAM 块中输入:
-✓ 输入 "UNITY_" → 显示矩阵变量补全
-✓ 输入 "UnityObject" → 显示空间转换函数补全
-✓ 输入 "tex2D" → 显示纹理采样函数补全
-✓ 输入 "#pragma " → 显示指令补全
-
-# 在 ShaderLab 区域输入:
-✓ 在 Properties 块内输入 "2D" 有补全
-✓ 在 Pass 块内输入 "Blend" 有补全
-```
-
-### 3. 悬停提示测试
-```
-# 悬停在各种符号上:
-✓ 悬停在 "UNITY_MATRIX_MVP" 上 → 显示说明信息
-✓ 悬停在 "UnityObjectToClipPos" 上 → 显示函数签名
-✓ 悬停在 "Blend" 上 → 显示混合模式说明
-✓ 悬停在 "ZWrite" 上 → 显示深度写入说明
-✓ 悬停在 "#pragma vertex" 上 → 显示指令说明
-```
-
-### 4. 符号导航测试
-```
-# 导航功能:
-✓ 按 Cmd+Shift+O → 显示 Shader 结构大纲
-✓ 在函数调用处按 F12 → 跳转到函数定义
-✓ 在 #include 处按 F12 → 跳转到包含文件
-✓ 右键 "查找所有引用" → 找到当前文档内的所有引用
-```
-
-### 5. 代码片段测试
-```
-# 在 .shader 文件中:
-✓ 输入 "shader" → Tab → 生成完整 Shader 模板
-✓ 输入 "properties" → Tab → 生成 Properties 块模板
-✓ 输入 "cgprogram" → Tab → 生成 CGPROGRAM 块
-✓ 输入 "v2f" → Tab → 生成顶点到片元结构体
-✓ 输入 "urpunlit" → Tab → 生成 URP Unlit Shader 模板
-```
-
-### 6. URP 支持测试
-```
-# 在 .shader 文件中:
-✓ 输入 "TransformObject" → 显示 URP 函数补全
-✓ 输入 "GetMainLight" → 显示 URP 光照函数补全
-✓ 输入 "_MainLightPosition" → 显示 URP 变量补全
-✓ 悬停在 URP 函数上 → 显示 URP 特有说明
-```
-
-### 7. 跨文件功能测试
-```
-# #include 和 FallBack 跳转:
-✓ 在 #include "HLSLSupport.cginc" 上按 F12 → 跳转到对应文件
-✓ 在 FallBack "Diffuse" 上按 F12 → 跳转到 Diffuse.shader
-✓ 在函数定义上右键 → 显示所有引用位置
-✓ 在变量定义上右键 → 显示所有引用位置
-```
-
----
-
-**文档创建时间**: 2026-01-11  
-**最后更新**: 2026-01-11  
-**版本**: v1.0.0 (基础版)
-
----
-
-> **注意**: 本文件记录了 Phase 1-8 的完整开发历史，详细的功能规格和验收标准。对于 Phase 9.X 的后续优化计划，请查看 [TECHNICAL_SPEC.md](doc/TECHNICAL_SPEC.md)。
+### 主要测试点
+- 语法高亮: Shader、Properties、SubShader、Pass、CGPROGRAM/ENDCG、Tags等结构高亮正确
+- 代码补全: Unity内置函数、变量、ShaderLab关键字、pragma指令等补全正常
+- 悬停提示: 变量说明、函数签名、ShaderLab关键字解释显示正常
+- 符号导航: 大纲视图、定义跳转、引用查找、include文件跳转正常
+- 代码片段: 主要Shader模板（基础、Surface、Unlit、URP）生成正常
