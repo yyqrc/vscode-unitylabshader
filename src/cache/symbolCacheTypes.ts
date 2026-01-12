@@ -20,6 +20,7 @@ export enum CachedSymbolKind {
     Typedef = 'typedef',
     Class = 'class',
     Interface = 'interface',
+    Shader = 'shader',  // Unity Shader 定义
 }
 
 /**

@@ -31,6 +31,9 @@ export class SymbolParser {
     
     // typedef 定义正则表达式
     private static readonly TYPEDEF_REGEX = /^\s*typedef\s+(.+?)\s+(\w+)\s*;/gm;
+    
+    // Unity Shader 定义正则表达式: Shader "Name/Path"
+    private static readonly SHADER_REGEX = /^\s*Shader\s+"([^"]+)"/gm;
 
     /**
      * 解析文件内容，提取所有符号
@@ -56,6 +59,11 @@ export class SymbolParser {
 
         // 解析 typedef
         symbols.push(...this.parseTypedefs(content, lines, filePath));
+
+        // 解析 Unity Shader 定义（仅 .shader 文件）
+        if (filePath.endsWith('.shader')) {
+            symbols.push(...this.parseShaders(content, lines, filePath));
+        }
 
         return symbols;
     }
@@ -394,6 +402,44 @@ export class SymbolParser {
         const skipKeywords = ['if', 'for', 'while', 'switch', 'return'];
         return skipKeywords.includes(varName.toLowerCase()) ||
                skipKeywords.includes(varType.toLowerCase());
+    }
+
+    /**
+     * 解析 Unity Shader 定义
+     */
+    private static parseShaders(content: string, lines: string[], filePath: string): CachedSymbol[] {
+        const symbols: CachedSymbol[] = [];
+        const regex = new RegExp(this.SHADER_REGEX);
+        let match: RegExpExecArray | null;
+
+        while ((match = regex.exec(content)) !== null) {
+            const shaderName = match[1].trim();
+            const position = this.getPosition(content, match.index, lines);
+            
+            // 查找 Shader 名称在行中的精确位置
+            const lineText = lines[position.line];
+            const nameStartIndex = lineText.indexOf(`"${shaderName}"`);
+            const nameColumn = nameStartIndex !== -1 ? nameStartIndex + 1 : position.character; // +1 跳过引号
+            const nameEndColumn = nameColumn + shaderName.length;
+
+            const signature = `Shader "${shaderName}"`;
+            const definitionText = match[0];
+
+            symbols.push({
+                name: shaderName,
+                kind: CachedSymbolKind.Shader,
+                filePath,
+                line: position.line,
+                column: nameColumn,
+                endLine: position.line,
+                endColumn: nameEndColumn,
+                signature,
+                contentHash: FileHasher.hashString(signature),
+                definitionText,
+            });
+        }
+
+        return symbols;
     }
 
     /**

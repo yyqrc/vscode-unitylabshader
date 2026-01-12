@@ -791,27 +791,85 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
      * - FallBack "Mobile/VertexLit" -> 搜索 Shader "Mobile/VertexLit"
      */
     private async searchFallBackShader(shaderName: string, rootPath: string): Promise<Location[]> {
+        this.devLog(`[FallBack] Searching: "${shaderName}"`);
+        
+        // 首先尝试从缓存中查找 shader 定义
+        const cachedResults = await this.searchShaderFromCache(shaderName, rootPath);
+        if (cachedResults.length > 0) {
+            this.devLog(`[FallBack] ✓ Found in cache: ${cachedResults.length} result(s)`);
+            return cachedResults;
+        }
+        
+        // 缓存未命中，使用 ripgrep 搜索
+        return this.searchShaderWithRipgrep(shaderName, rootPath);
+    }
+    
+    /**
+     * 从缓存中查找 Shader 定义
+     */
+    private async searchShaderFromCache(shaderName: string, rootPath: string): Promise<Location[]> {
+        const results: Location[] = [];
+        
+        if (!this.symbolCacheManager) {
+            return results;
+        }
+        
+        try {
+            // 在缓存中查找符号
+            const cachedSymbols = this.symbolCacheManager.findSymbol(shaderName);
+            
+            // 只保留 shader 类型的符号
+            const shaderSymbols = cachedSymbols.filter(s => s.kind === CachedSymbolKind.Shader);
+            
+            for (const symbol of shaderSymbols) {
+                const absolutePath = join(rootPath, symbol.filePath);
+                const range = new Range(
+                    new Position(symbol.line, symbol.column),
+                    new Position(symbol.endLine, symbol.endColumn)
+                );
+                results.push(new Location(Uri.file(absolutePath), range));
+            }
+        } catch (error) {
+            this.devLog(`[FallBack] Cache search error: ${error}`);
+        }
+        
+        return results;
+    }
+    
+    /**
+     * 使用 ripgrep 搜索 Shader 定义
+     */
+    private async searchShaderWithRipgrep(shaderName: string, rootPath: string): Promise<Location[]> {
         const results: Location[] = [];
         const rgPath = getRgPath();
-        
-        this.devLog(`[FallBack] Searching: "${shaderName}"`);
+        const isWindows = process.platform === 'win32';
         
         try {
             // 注意：/ 字符在 ripgrep 正则表达式中不是特殊字符，不需要转义
             // 只需要转义正则表达式的特殊字符：. * + ? ^ $ { } ( ) | [ ] \
             const escapedShaderName = shaderName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             
-            // 构建搜索模式：匹配 Shader "ShaderName" 行
-            const pattern = `^\\s*Shader\\s+"${escapedShaderName}"`;
-            
             // FallBack 是 Unity 独有的功能，只需要搜索 .shader 和 .cginc 文件
             const fileTypes = ['*.shader', '*.cginc'];
             const globPattern = fileTypes.map(t => `-g "${t}"`).join(' ');
             
+            // 构建搜索模式：匹配 Shader "ShaderName" 行
+            // 跨平台处理：
+            // - Windows: 使用 \" 转义双引号，外层用双引号包裹
+            // - macOS/Linux: 使用单引号包裹整个模式，内部双引号不需要转义
+            let cmd: string;
+            if (isWindows) {
+                // Windows: 双引号包裹，内部双引号用反斜杠转义
+                const pattern = `^\\s*Shader\\s+\\"${escapedShaderName}\\"`;
+                cmd = `"${rgPath}" ${globPattern} --case-sensitive -H --line-number --hidden -e "${pattern}" .`;
+            } else {
+                // macOS/Linux: 单引号包裹，内部双引号不需要转义
+                const pattern = `^\\s*Shader\\s+"${escapedShaderName}"`;
+                cmd = `"${rgPath}" ${globPattern} --case-sensitive -H --line-number --hidden -e '${pattern}' .`;
+            }
+            
             // 执行 ripgrep 搜索
-            // 注意：Windows 上需要使用双引号包裹正则表达式，而非单引号
             const execOpts = { cwd: rootPath, maxBuffer: 1024 * 1024 };
-            const cmd = `"${rgPath}" ${globPattern} --case-sensitive -H --line-number --hidden -e "${pattern}" .`;
             
             this.devLog(`[FallBack] Command: ${cmd}`);
             
