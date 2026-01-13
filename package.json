@@ -108,6 +108,47 @@
           "type": "number",
           "default": 512,
           "description": "Maximum number of shader variants before showing an error."
+        },
+        "unityshader.mobile.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable mobile platform optimization analysis. | 启用/禁用移动平台优化分析。"
+        },
+        "unityshader.mobile.checkUnsupportedFeatures": {
+          "type": "boolean",
+          "default": true,
+          "description": "Check for features not supported on mobile platforms. | 检测移动平台不支持的特性。"
+        },
+        "unityshader.mobile.suggestHalfPrecision": {
+          "type": "boolean",
+          "default": true,
+          "description": "Suggest using half precision for better mobile performance. | 建议使用 half 精度以提升移动端性能。"
+        },
+        "unityshader.mobile.checkTextureOptimization": {
+          "type": "boolean",
+          "default": true,
+          "description": "Check for texture sampling optimizations. | 检测纹理采样优化建议。"
+        },
+        "unityshader.mobile.checkDiscouragedFunctions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Check for functions discouraged on mobile platforms. | 检测移动端不推荐使用的函数。"
+        },
+        "unityshader.mobile.calculateComplexity": {
+          "type": "boolean",
+          "default": true,
+          "description": "Calculate and display shader complexity score. | 计算并显示 Shader 复杂度评分。"
+        },
+        "unityshader.mobile.targetPlatform": {
+          "type": "string",
+          "enum": [
+            "ES3.0",
+            "ES3.1",
+            "Metal",
+            "Vulkan"
+          ],
+          "default": "ES3.0",
+          "description": "Target mobile platform for compatibility checking. | 目标移动平台（用于兼容性检测）。"
         }
       }
     },
@@ -127,6 +168,14 @@
       {
         "command": "unityshader.clearSymbolCache",
         "title": "Unity Shader: Clear Symbol Cache"
+      },
+      {
+        "command": "unityshader.showMobileOptimizationTips",
+        "title": "Unity Shader: Show Mobile Optimization Tips"
+      },
+      {
+        "command": "unityshader.toggleMobileAnalysis",
+        "title": "Unity Shader: Toggle Mobile Analysis"
       }
     ],
     "snippets": [

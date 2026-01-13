@@ -18,6 +18,7 @@ import HLSLRenameProvider from './hlsl/renameProvider';
 import HLSLFormattingProvider from './hlsl/formattingProvider';
 import { SemanticAnalyzer } from './analysis/semanticAnalyzer';
 import { VariantAnalyzer } from './analysis/variantAnalyzer';
+import { MobileAnalyzer } from './mobile';
 
 // Unity Shader 支持的文件类型
 const documentSelector = [
@@ -89,8 +90,11 @@ export function activate(context: vscode.ExtensionContext) {
     // 初始化语义分析器和变体分析器
     const semanticAnalyzer = new SemanticAnalyzer();
     const variantAnalyzer = new VariantAnalyzer();
+    const mobileAnalyzer = new MobileAnalyzer();
     context.subscriptions.push(semanticAnalyzer);
     context.subscriptions.push(variantAnalyzer);
+    context.subscriptions.push(mobileAnalyzer);
+    console.log('Mobile analyzer initialized');
 
     // 注册 Hover 提供器（传入analyzer实例）
     const hoverProvider = new HLSLHoverProvider(semanticAnalyzer, variantAnalyzer);
@@ -158,6 +162,8 @@ export function activate(context: vscode.ExtensionContext) {
                             variantAnalyzer.analyzeDocument(event.document, editor);
                         }
                     }
+                    // 移动端分析
+                    mobileAnalyzer.analyzeDocument(event.document);
                 }, 500);
             }
         })
@@ -180,6 +186,8 @@ export function activate(context: vscode.ExtensionContext) {
                         variantAnalyzer.analyzeDocument(document, editor);
                     }
                 }
+                // 移动端分析
+                mobileAnalyzer.analyzeDocument(document);
             }
         })
     );
@@ -198,6 +206,8 @@ export function activate(context: vscode.ExtensionContext) {
                 if (enableVariantAnalysis) {
                     variantAnalyzer.analyzeDocument(editor.document, editor);
                 }
+                // 移动端分析
+                mobileAnalyzer.analyzeDocument(editor.document);
             }
         })
     );
@@ -216,8 +226,24 @@ export function activate(context: vscode.ExtensionContext) {
             if (enableVariantAnalysis) {
                 variantAnalyzer.analyzeDocument(document, vscode.window.activeTextEditor);
             }
+            // 移动端分析
+            mobileAnalyzer.analyzeDocument(document);
         }
     }
+
+    // 监听配置变化，刷新移动端分析器配置
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeConfiguration(event => {
+            if (event.affectsConfiguration('unityshader.mobile')) {
+                mobileAnalyzer.refreshConfig();
+                // 重新分析当前文档
+                if (vscode.window.activeTextEditor && 
+                    vscode.window.activeTextEditor.document.languageId === 'unityshader') {
+                    mobileAnalyzer.analyzeDocument(vscode.window.activeTextEditor.document);
+                }
+            }
+        })
+    );
 
     // 注册命令：构建符号缓存
     context.subscriptions.push(
@@ -259,6 +285,61 @@ export function activate(context: vscode.ExtensionContext) {
             } catch (error) {
                 vscode.window.showErrorMessage(`Failed to clear symbol cache: ${error}`);
             }
+        })
+    );
+
+    // 注册命令：显示移动端优化提示
+    context.subscriptions.push(
+        vscode.commands.registerCommand('unityshader.showMobileOptimizationTips', async () => {
+            const tips = mobileAnalyzer.getMobileOptimizationTips();
+            const score = mobileAnalyzer.getLastComplexityScore();
+            
+            let message = '📱 移动端 Shader 优化提示\n\n';
+            
+            if (score) {
+                message += `当前复杂度: ${score.level} (评分: ${score.score})\n`;
+                message += `纹理操作: ${score.details.textureOps} | 数学运算: ${score.details.mathOps}\n`;
+                message += `分支: ${score.details.branches} | 循环: ${score.details.loops}\n\n`;
+                
+                if (score.suggestions.length > 0) {
+                    message += '🔧 针对当前代码的建议:\n';
+                    for (const suggestion of score.suggestions) {
+                        message += `  • ${suggestion}\n`;
+                    }
+                    message += '\n';
+                }
+            }
+            
+            message += '💡 通用优化建议:\n';
+            for (const tip of tips) {
+                message += `${tip}\n`;
+            }
+            
+            const result = await vscode.window.showInformationMessage(
+                '移动端 Shader 优化提示已在输出面板显示',
+                '查看详情'
+            );
+            
+            if (result === '查看详情') {
+                const outputChannel = vscode.window.createOutputChannel('Unity Shader Mobile');
+                outputChannel.clear();
+                outputChannel.appendLine(message);
+                outputChannel.show();
+            }
+        })
+    );
+
+    // 注册命令：切换移动端分析开关
+    context.subscriptions.push(
+        vscode.commands.registerCommand('unityshader.toggleMobileAnalysis', async () => {
+            const config = vscode.workspace.getConfiguration('unityshader.mobile');
+            const currentEnabled = config.get<boolean>('enabled', true);
+            
+            await config.update('enabled', !currentEnabled, vscode.ConfigurationTarget.Global);
+            
+            vscode.window.showInformationMessage(
+                `移动端分析已${!currentEnabled ? '启用' : '禁用'}`
+            );
         })
     );
 

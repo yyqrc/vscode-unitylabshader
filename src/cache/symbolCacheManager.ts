@@ -88,7 +88,24 @@ export class SymbolCacheManager {
         try {
             if (fs.existsSync(this.cacheFilePath)) {
                 const content = await fs.promises.readFile(this.cacheFilePath, 'utf-8');
+                
+                // 检查文件是否为空或只有空白字符
+                if (!content || content.trim().length === 0) {
+                    console.warn('Cache file is empty, will rebuild cache');
+                    await this.deleteCacheFile();
+                    this.cache = null;
+                    return;
+                }
+
                 const data = JSON.parse(content);
+                
+                // 验证缓存数据结构的完整性
+                if (!data || typeof data !== 'object' || !data.version) {
+                    console.warn('Cache file has invalid structure, will rebuild cache');
+                    await this.deleteCacheFile();
+                    this.cache = null;
+                    return;
+                }
                 
                 // 转换 files 对象为 Map（如果需要）
                 this.cache = {
@@ -107,7 +124,23 @@ export class SymbolCacheManager {
             }
         } catch (error) {
             console.error('Failed to load cache:', error);
+            // 缓存文件损坏，删除它以便重建
+            await this.deleteCacheFile();
             this.cache = null;
+        }
+    }
+
+    /**
+     * 删除缓存文件（用于处理损坏的缓存）
+     */
+    private async deleteCacheFile(): Promise<void> {
+        try {
+            if (fs.existsSync(this.cacheFilePath)) {
+                await fs.promises.unlink(this.cacheFilePath);
+                console.log(`Deleted corrupted cache file: ${this.cacheFilePath}`);
+            }
+        } catch (error) {
+            console.error('Failed to delete corrupted cache file:', error);
         }
     }
 

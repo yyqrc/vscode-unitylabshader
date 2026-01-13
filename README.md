@@ -5,12 +5,14 @@
 ## 主要功能
 
 - ✨ **语法高亮** - 支持 ShaderLab 和 HLSL/CG 语法高亮
-- 💡 **代码补全** - HLSL 内置函数、Unity 内置变量和函数补全
+- 💡 **代码补全** - HLSL 内置函数、Unity/URP 内置变量和函数补全
 - 📝 **悬停提示** - 显示函数签名和文档说明（支持中英文）
 - 🔍 **符号导航** - 大纲视图、转到定义、查找引用（支持跨文件）
-- ⚡ **函数签名帮助** - 输入函数参数时显示提示
+- ⚡ **智能分析** - 语义分析、变体分析、未使用变量检测
+- 📱 **移动端优化** - 移动平台特性检测、half 精度建议、复杂度评分
+- 🔧 **代码重构** - 重命名符号、代码格式化（支持跨文件）
 - 📁 **代码折叠** - 支持 `{}` 括号、预处理器、代码块折叠
-- 🔎 **宏定义跳转** - 支持宏定义和函数式宏的定义跳转
+- 🎮 **Unreal 支持** - 支持 `.usf`/`.ush` 文件和 Unreal 函数补全
 
 ## 快速开始
 
@@ -67,6 +69,8 @@ code --install-extension unityshader-x.x.x.vsix
 | `.hlsli` | HLSL include 文件 |
 | `.compute` | 计算着色器文件 |
 | `.cg` | CG 着色器文件 |
+| `.usf` | Unreal Shader 文件 |
+| `.ush` | Unreal Shader Header |
 
 ## 安装
 
@@ -86,6 +90,8 @@ code --install-extension unityshader-x.x.x.vsix
 | `unityshader.suggest.basic` | `true` | 启用/禁用 HLSL 基础补全 |
 | `unityshader.suggest.unity` | `true` | 启用/禁用 Unity 内置补全 |
 | `unityshader.suggest.urp` | `true` | 启用/禁用 URP 补全 |
+| `unityshader.mobile.enabled` | `true` | 启用/禁用移动端优化分析 |
+| `unityshader.analysis.semanticAnalysis` | `true` | 启用/禁用语义分析 |
 
 ## 开发
 
@@ -105,6 +111,13 @@ npm run build:major
 ```
 
 详细说明请查看 [BUILD_GUIDE.md](./BUILD_GUIDE.md)
+
+## 文档
+
+- [功能文档](./doc/FEATURES.md) - 完整功能说明
+- [技术规格](./doc/TECHNICAL_SPEC.md) - 架构和技术细节
+- [任务清单](./TODO.md) - 开发进度
+- [更新日志](./CHANGELOG.md) - 版本历史
 
 ### 开发脚本
 
