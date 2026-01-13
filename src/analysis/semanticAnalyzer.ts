@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { RegexCache } from '../utils/RegexCache';
 
 /**
  * 变量信息接口
@@ -32,6 +33,20 @@ export class SemanticAnalyzer {
     private variables: Map<string, VariableInfo[]> = new Map();
     private functions: Map<string, FunctionInfo> = new Map();
     private diagnosticCollection: vscode.DiagnosticCollection;
+
+    // 预编译常用正则表达式
+    private static readonly REGEX_PATTERNS = {
+        CG_HLSL_PROGRAM: /^(CG|HLSL)PROGRAM/,
+        END_CG_HLSL: /^END(CG|HLSL)/,
+        SHADERLAB_KEYWORDS: /^(Shader|Properties|SubShader|Pass|Tags|Name|LOD|Cull|ZWrite|ZTest|Blend|ColorMask|Stencil|Offset|AlphaToMask|Conservative|Fallback|CustomEditor|Category|UsePass|GrabPass)\b/i,
+        STRUCT_DEF: /^struct\s+(\w+)/,
+        FUNCTION_DEF: /^(\w+)\s+(\w+)\s*\([^)]*\)\s*{?/,
+        PARAM_EXTRACT: /\(([^)]*)\)/,
+        VAR_DECL: /^(\w+(?:\d+)?(?:<[^>]+>)?)\s+(\w+)(?:\s*=|\s*;|\s*\[|\s*\()/,
+        MULTI_VAR_DECL: /^(\w+(?:\d+)?(?:<[^>]+>)?)\s+([\w\s,]+);/,
+        BRACE_OPEN: /{/g,
+        BRACE_CLOSE: /}/g,
+    };
 
     constructor() {
         this.diagnosticCollection = vscode.languages.createDiagnosticCollection('unityshader-semantic');

@@ -204,3 +204,81 @@ export interface ParseFileResult {
     symbols: CachedSymbol[];
     parseTime: number;
 }
+
+/**
+ * 优化的符号索引条目（直接存储符号引用，避免二次查找）
+ */
+export interface OptimizedSymbolIndexEntry {
+    /** 符号引用（直接指向符号对象） */
+    symbol: CachedSymbol;
+    
+    /** 文件路径（用于快速定位） */
+    filePath: string;
+    
+    /** 符号签名（用于精确匹配） */
+    signature?: string;
+}
+
+/**
+ * 优化的工作区符号缓存（运行时使用）
+ * 使用 Map 数据结构提升查找性能
+ */
+export interface OptimizedWorkspaceCache {
+    /** 缓存版本号 */
+    version: string;
+    
+    /** 工作区路径 */
+    workspacePath: string;
+    
+    /** 工作区路径的哈希值 */
+    workspaceHash: string;
+    
+    /** 文件路径 -> 符号缓存的映射（使用 Map） */
+    files: Map<string, FileSymbolCache>;
+    
+    /** 符号名称 -> 符号列表的索引（使用 Map，直接存储符号引用） */
+    symbolIndex: Map<string, OptimizedSymbolIndexEntry[]>;
+    
+    /** 符号标识符 -> 符号列表的映射（用于跨文件移动检测） */
+    symbolIdentifierMap: Map<string, CachedSymbol[]>;
+    
+    /** 最后更新时间戳 */
+    lastUpdated: number;
+}
+
+/**
+ * 符号查找选项
+ */
+export interface SymbolSearchOptions {
+    /** 是否精确匹配（默认 true） */
+    exactMatch?: boolean;
+    
+    /** 是否区分大小写（默认 true） */
+    caseSensitive?: boolean;
+    
+    /** 限制返回结果数量 */
+    limit?: number;
+    
+    /** 过滤符号类型 */
+    kindFilter?: CachedSymbolKind[];
+    
+    /** 过滤文件路径（支持通配符） */
+    filePathFilter?: string;
+}
+
+/**
+ * 符号查找结果（带性能统计）
+ */
+export interface SymbolSearchResult {
+    /** 找到的符号列表 */
+    symbols: CachedSymbol[];
+    
+    /** 查找耗时（毫秒） */
+    searchTime: number;
+    
+    /** 是否使用了缓存 */
+    fromCache: boolean;
+    
+    /** 匹配的文件数量 */
+    fileCount: number;
+}
