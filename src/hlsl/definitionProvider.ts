@@ -1,11 +1,11 @@
 
 import { DefinitionProvider, ImplementationProvider, TypeDefinitionProvider, SymbolInformation, TextDocument, Position, Location, CancellationToken, Definition, workspace, commands, Uri, Range, window } from 'vscode';
 import { CachedSymbolKind } from '../cache/symbolCacheTypes';
-import { execSync } from 'child_process';
 import { join } from 'path';
 import { getRgPath } from '../common';
 import { EngineContextManager, EngineType } from '../common/engineContext';
 import { SymbolCacheManager, CachedSymbol } from '../cache';
+import { RipgrepUtils, SymbolLookupUtils } from '../utils/CommonUtils';
 
 // 缓存条目接口
 interface CacheEntry {
@@ -93,172 +93,114 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
      * 搜索宏定义
      */
     private async searchMacroDefinitions(name: string, rootPath: string): Promise<Location[]> {
-        const results: Location[] = [];
-        
         this.devLog(`[Macro] Searching: "${name}"`);
         
         try {
-            const includePattern = '-g *' + this._hlslPattern.join(' -g *');
-            const execOpts = {
-                cwd: rootPath,
-                maxBuffer: 1024 * 1024
-            };
+            // 使用RipgrepUtils统一接口
+            const matches = RipgrepUtils.searchMacroDefinitions(name, rootPath, this._hlslPattern);
             
-            // 搜索 #define 宏定义
-            const macroPattern = `^\\s*#define\\s+${name}\\b`;
-            const output = execSync(`"${getRgPath()}" ${includePattern} --case-sensitive -H --line-number --column --hidden -e "${macroPattern}" .`, execOpts);
-            
-            const lines = output.toString().split('\n');
-            for (const line of lines) {
-                const lineMatch = /^(?:((?:[a-zA-Z]:)?[^:]*):)?(\d+):(\d+):(.+)/.exec(line);
-                if (lineMatch) {
-                    const filepath = join(rootPath, lineMatch[1]);
-                    const lineNum = parseInt(lineMatch[2]) - 1;
-                    const colNum = parseInt(lineMatch[3]) - 1;
-                    
-                    // 找到宏名称的精确位置
-                    const lineText = lineMatch[4];
-                    const macroNameMatch = new RegExp(`#define\\s+(${name})\\b`).exec(lineText);
-                    if (macroNameMatch) {
-                        const startCol = lineText.indexOf(macroNameMatch[1]);
-                        const endCol = startCol + name.length;
-                        const range = new Range(
-                            new Position(lineNum, startCol),
-                            new Position(lineNum, endCol)
-                        );
-                        results.push(new Location(Uri.file(filepath), range));
-                        this.devLog(`[Macro] ✓ Found: ${lineMatch[1]}:${lineNum + 1}`);
-                    }
+            // 转换为Location并精确定位符号位置
+            const results: Location[] = [];
+            for (const match of matches) {
+                const lineText = match.text;
+                const macroNameMatch = new RegExp(`#define\\s+(${name})\\b`).exec(lineText);
+                if (macroNameMatch) {
+                    const startCol = lineText.indexOf(macroNameMatch[1]);
+                    const endCol = startCol + name.length;
+                    const range = new Range(
+                        new Position(match.line, startCol),
+                        new Position(match.line, endCol)
+                    );
+                    results.push(new Location(Uri.file(match.filePath), range));
+                    this.devLog(`[Macro] ✓ Found: ${match.filePath}:${match.line + 1}`);
                 }
             }
             
             if (results.length === 0) {
                 this.devLog(`[Macro] ✗ Not found`);
             }
+            
+            return results;
         } catch (error: any) {
-            // 没有找到结果时 ripgrep 会抛出错误，这是正常的
-            if (error.status === 1) {
-                this.devLog(`[Macro] ✗ Not found`);
-            } else {
-                this.devLog(`[Macro] Error: ${error.message}`);
-            }
+            this.devLog(`[Macro] Error: ${error.message}`);
+            return [];
         }
-        
-        return results;
     }
 
     /**
      * 搜索函数定义
      */
     private async searchFunctionDefinitions(name: string, rootPath: string): Promise<Location[]> {
-        const results: Location[] = [];
-
         this.devLog(`[Function] Searching: "${name}"`);
 
         try {
-            const includePattern = '-g *' + this._hlslPattern.join(' -g *');
-            const execOpts = {
-                cwd: rootPath,
-                maxBuffer: 1024 * 1024
-            };
-
-            // 搜索函数定义（可选修饰符 + 返回类型 + 函数名 + 左括号）
-            // 支持 inline, static, extern 等修饰符，以及无修饰符的情况
-            // 使用更宽松的模式：返回类型 + 空白 + 函数名 + 可选空白 + 左括号
-            const funcPattern = `^[a-zA-Z_][a-zA-Z0-9_<>,\\s]*\\s+${name}\\s*\\(`;
-            const output = execSync(`"${getRgPath()}" ${includePattern} --case-sensitive -H --line-number --column --hidden -e "${funcPattern}" .`, execOpts);
-
-            const lines = output.toString().split('\n');
-            for (const line of lines) {
-                const lineMatch = /^(?:((?:[a-zA-Z]:)?[^:]*):)?(\d+):(\d+):(.+)/.exec(line);
-                if (lineMatch) {
-                    const filepath = join(rootPath, lineMatch[1]);
-                    const lineNum = parseInt(lineMatch[2]) - 1;
-                    const lineText = lineMatch[4];
-
-                    // 找到函数名称的精确位置
-                    const funcNameMatch = new RegExp(`\\b(${name})\\s*\\(`).exec(lineText);
-                    if (funcNameMatch) {
-                        const startCol = lineText.indexOf(funcNameMatch[1]);
-                        const endCol = startCol + name.length;
-                        const range = new Range(
-                            new Position(lineNum, startCol),
-                            new Position(lineNum, endCol)
-                        );
-                        results.push(new Location(Uri.file(filepath), range));
-                        this.devLog(`[Function] ✓ Found: ${lineMatch[1]}:${lineNum + 1}`);
-                    }
+            // 使用RipgrepUtils统一接口
+            const matches = RipgrepUtils.searchFunctionDefinitions(name, rootPath, this._hlslPattern);
+            
+            // 转换为Location并精确定位符号位置
+            const results: Location[] = [];
+            for (const match of matches) {
+                const lineText = match.text;
+                const funcNameMatch = new RegExp(`\\b(${name})\\s*\\(`).exec(lineText);
+                if (funcNameMatch) {
+                    const startCol = lineText.indexOf(funcNameMatch[1]);
+                    const endCol = startCol + name.length;
+                    const range = new Range(
+                        new Position(match.line, startCol),
+                        new Position(match.line, endCol)
+                    );
+                    results.push(new Location(Uri.file(match.filePath), range));
+                    this.devLog(`[Function] ✓ Found: ${match.filePath}:${match.line + 1}`);
                 }
             }
             
             if (results.length === 0) {
                 this.devLog(`[Function] ✗ Not found`);
             }
+            
+            return results;
         } catch (error: any) {
-            if (error.status === 1) {
-                this.devLog(`[Function] ✗ Not found`);
-            } else {
-                this.devLog(`[Function] Error: ${error.message}`);
-            }
+            this.devLog(`[Function] Error: ${error.message}`);
+            return [];
         }
-
-        return results;
     }
 
     /**
      * 搜索结构体定义
      */
     private async searchStructDefinitions(name: string, rootPath: string): Promise<Location[]> {
-        const results: Location[] = [];
-        
         this.devLog(`[Struct] Searching: "${name}"`);
         
         try {
-            const includePattern = '-g *' + this._hlslPattern.join(' -g *');
-            const execOpts = {
-                cwd: rootPath,
-                maxBuffer: 1024 * 1024
-            };
+            // 使用RipgrepUtils统一接口
+            const matches = RipgrepUtils.searchStructDefinitions(name, rootPath, this._hlslPattern);
             
-            // 搜索结构体定义
-            const structPattern = `^(?:struct|cbuffer|tbuffer)\\s+${name}\\b`;
-            const output = execSync(`"${getRgPath()}" ${includePattern} --case-sensitive -H --line-number --column --hidden -e "${structPattern}" .`, execOpts);
-            
-            const lines = output.toString().split('\n');
-            for (const line of lines) {
-                const lineMatch = /^(?:((?:[a-zA-Z]:)?[^:]*):)?(\d+):(\d+):(.+)/.exec(line);
-                if (lineMatch) {
-                    const filepath = join(rootPath, lineMatch[1]);
-                    const lineNum = parseInt(lineMatch[2]) - 1;
-                    const lineText = lineMatch[4];
-                    
-                    // 找到结构体名称的精确位置
-                    const structNameMatch = new RegExp(`(?:struct|cbuffer|tbuffer)\\s+(${name})\\b`).exec(lineText);
-                    if (structNameMatch) {
-                        const startCol = lineText.indexOf(structNameMatch[1]);
-                        const endCol = startCol + name.length;
-                        const range = new Range(
-                            new Position(lineNum, startCol),
-                            new Position(lineNum, endCol)
-                        );
-                        results.push(new Location(Uri.file(filepath), range));
-                        this.devLog(`[Struct] ✓ Found: ${lineMatch[1]}:${lineNum + 1}`);
-                    }
+            // 转换为Location并精确定位符号位置
+            const results: Location[] = [];
+            for (const match of matches) {
+                const lineText = match.text;
+                const structNameMatch = new RegExp(`(?:struct|cbuffer|tbuffer)\\s+(${name})\\b`).exec(lineText);
+                if (structNameMatch) {
+                    const startCol = lineText.indexOf(structNameMatch[1]);
+                    const endCol = startCol + name.length;
+                    const range = new Range(
+                        new Position(match.line, startCol),
+                        new Position(match.line, endCol)
+                    );
+                    results.push(new Location(Uri.file(match.filePath), range));
+                    this.devLog(`[Struct] ✓ Found: ${match.filePath}:${match.line + 1}`);
                 }
             }
             
             if (results.length === 0) {
                 this.devLog(`[Struct] ✗ Not found`);
             }
+            
+            return results;
         } catch (error: any) {
-            if (error.status === 1) {
-                this.devLog(`[Struct] ✗ Not found`);
-            } else {
-                this.devLog(`[Struct] Error: ${error.message}`);
-            }
+            this.devLog(`[Struct] Error: ${error.message}`);
+            return [];
         }
-        
-        return results;
     }
 
     /**
@@ -734,22 +676,11 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             
             // 4. 使用 ripgrep 直接搜索文件名（方案5：更简单高效）
             const fileName = path.basename(includePath);
-            const execOpts = {
-                cwd: rootPath,
-                maxBuffer: 1024 * 1024
-            };
-            
             try {
                 this.devLog(`[Include] Searching by filename: ${fileName}`);
                 
-                // 方案5：直接搜索文件名匹配的文件
-                // 使用 -g 模式精确匹配文件名，而不是先列出所有文件再过滤
-                // 例如：rg --files -g "StdInstancing.cginc" .
-                const command = `"${getRgPath()}" --files --hidden -g "${fileName}" .`;
-                this.devLog(`[Include] Command: ${command}`);
-                
-                const output = execSync(command, execOpts);
-                const matchingFiles = output.toString().split('\n').filter(f => f.trim());
+                // 使用RipgrepUtils统一接口搜索文件
+                const matchingFiles = RipgrepUtils.searchFiles(fileName, rootPath);
                 this.devLog(`[Include] Found ${matchingFiles.length} matching files`);
                 
                 if (matchingFiles.length > 0) {
@@ -857,45 +788,32 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             // 跨平台处理：
             // - Windows: 使用 \" 转义双引号，外层用双引号包裹
             // - macOS/Linux: 使用单引号包裹整个模式，内部双引号不需要转义
-            let cmd: string;
-            if (isWindows) {
-                // Windows: 双引号包裹，内部双引号用反斜杠转义
-                const pattern = `^\\s*Shader\\s+\\"${escapedShaderName}\\"`;
-                cmd = `"${rgPath}" ${globPattern} --case-sensitive -H --line-number --hidden -e "${pattern}" .`;
-            } else {
-                // macOS/Linux: 单引号包裹，内部双引号不需要转义
-                const pattern = `^\\s*Shader\\s+"${escapedShaderName}"`;
-                cmd = `"${rgPath}" ${globPattern} --case-sensitive -H --line-number --hidden -e '${pattern}' .`;
-            }
+            // 使用RipgrepUtils统一接口搜索Shader定义
+            this.devLog(`[FallBack] Searching Shader definition: ${shaderName}`);
             
-            // 执行 ripgrep 搜索
-            const execOpts = { cwd: rootPath, maxBuffer: 1024 * 1024 };
+            // FallBack 是 Unity 独有的功能，只需要搜索 .shader 和 .cginc 文件
+            const searchExtensions = ['shader', 'cginc'];
+            const matches = RipgrepUtils.searchShaderDefinition(shaderName, rootPath, searchExtensions);
             
-            this.devLog(`[FallBack] Command: ${cmd}`);
-            
-            const output = execSync(cmd, execOpts);
-            
-            // 解析搜索结果
-            const lines = output.toString().split('\n').filter(line => line.trim());
-            
-            for (const line of lines) {
-                // 解析 ripgrep 输出格式：filepath:lineNum:lineText
-                const match = /^([^:]+):(\d+):(.+)$/.exec(line);
-                if (!match) continue;
-                
-                const [, relativePath, lineNumStr, lineText] = match;
-                const filepath = join(rootPath, relativePath);
-                const lineNum = parseInt(lineNumStr) - 1;
+            for (const match of matches) {
+                const filepath = match.filePath;
+                const lineNum = match.line;
+                const lineText = match.text;
                 
                 // 在行文本中查找 Shader 名称的精确位置
                 const nameMatch = new RegExp(`Shader\\s+"([^"]+)"`, 'i').exec(lineText);
                 if (nameMatch && nameMatch[1] === shaderName) {
-                    const startCol = lineText.indexOf(nameMatch[1]);
+                    // 计算Shader名称在行中的起始位置
+                    const startCol = lineText.indexOf(`"${shaderName}"`) + 1; // +1 跳过开头的引号
                     const endCol = startCol + shaderName.length;
                     const range = new Range(
                         new Position(lineNum, startCol),
                         new Position(lineNum, endCol)
                     );
+                    
+                    // 获取相对路径用于日志
+                    const relativePath = filepath.replace(rootPath, '').replace(/^[\\\/]/, '');
+                    
                     results.push(new Location(Uri.file(filepath), range));
                     this.devLog(`[FallBack] ✓ Found: ${relativePath}:${lineNum + 1}`);
                 }

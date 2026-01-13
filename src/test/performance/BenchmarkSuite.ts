@@ -52,12 +52,11 @@ export class BenchmarkSuite {
 
         // 读取文件内容
         const content = await fs.readFile(config.filePath, 'utf-8');
-        const parser = new SymbolParser();
 
         // 预热
         console.log('Warming up...');
         for (let i = 0; i < config.warmupIterations; i++) {
-            await parser.parseFile(config.filePath, content);
+            SymbolParser.parseFile(config.filePath, content);
         }
 
         // 正式测试
@@ -66,7 +65,7 @@ export class BenchmarkSuite {
         
         for (let i = 0; i < config.iterations; i++) {
             this.timer.start(label);
-            await parser.parseFile(config.filePath, content);
+            SymbolParser.parseFile(config.filePath, content);
             const duration = this.timer.end(label);
             
             if ((i + 1) % 10 === 0) {
@@ -94,8 +93,7 @@ export class BenchmarkSuite {
 
         // 读取文件并解析
         const content = await fs.readFile(config.filePath, 'utf-8');
-        const parser = new SymbolParser();
-        const symbols = await parser.parseFile(config.filePath, content);
+        const symbols = SymbolParser.parseFile(config.filePath, content);
 
         if (symbols.length === 0) {
             console.log('Warning: No symbols found in file');
@@ -103,14 +101,14 @@ export class BenchmarkSuite {
         }
 
         // 提取符号名称用于查找测试
-        const symbolNames = symbols.map(s => s.name);
+        const symbolNames = symbols.map((s: any) => s.name);
         console.log(`Found ${symbolNames.length} symbols`);
 
         // 预热
         console.log('Warming up...');
         for (let i = 0; i < config.warmupIterations; i++) {
             const randomName = symbolNames[Math.floor(Math.random() * symbolNames.length)];
-            symbols.find(s => s.name === randomName);
+            symbols.find((s: any) => s.name === randomName);
         }
 
         // 单次查找测试
@@ -121,7 +119,7 @@ export class BenchmarkSuite {
             const randomName = symbolNames[Math.floor(Math.random() * symbolNames.length)];
             
             this.timer.start(singleLabel);
-            symbols.find(s => s.name === randomName);
+            symbols.find((s: any) => s.name === randomName);
             this.timer.end(singleLabel);
         }
 
@@ -138,7 +136,7 @@ export class BenchmarkSuite {
             
             this.timer.start(batchLabel);
             for (const name of searchNames) {
-                symbols.find(s => s.name === name);
+                symbols.find((s: any) => s.name === name);
             }
             this.timer.end(batchLabel);
         }

@@ -388,7 +388,9 @@ export class OptimizedCacheManager {
         // 如果缓存已满，删除最旧的条目
         if (this.searchCache.size >= this.MAX_SEARCH_CACHE_SIZE) {
             const firstKey = this.searchCache.keys().next().value;
-            this.searchCache.delete(firstKey);
+            if (firstKey !== undefined) {
+                this.searchCache.delete(firstKey);
+            }
         }
         
         this.searchCache.set(key, result);

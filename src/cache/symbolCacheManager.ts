@@ -178,6 +178,24 @@ export class SymbolCacheManager {
     }
 
     /**
+     * 同步保存缓存（用于插件关闭时确保数据完整性）
+     */
+    private saveCacheSync(): void {
+        if (!this.cache) {
+            return;
+        }
+
+        try {
+            this.cache.lastUpdated = Date.now();
+            const content = JSON.stringify(this.cache, null, 2);
+            fs.writeFileSync(this.cacheFilePath, content, 'utf-8');
+            console.log(`Cache saved synchronously to ${this.cacheFilePath}`);
+        } catch (error) {
+            console.error('Failed to save cache synchronously:', error);
+        }
+    }
+
+    /**
      * 构建缓存（使用多线程）
      */
     private async buildCache(): Promise<void> {
@@ -256,7 +274,8 @@ export class SymbolCacheManager {
         const totalFiles = files.length;
         
         // 使用文件队列模式：每个 Worker 独立处理自己队列中的文件
-        const fileQueue = [...files]; // 复制文件列表作为队列
+        // 将绝对路径转换为相对路径
+        const fileQueue = files.map(f => this.getRelativePath(f));
         let queueIndex = 0; // 当前队列索引
 
         // 为每个 Worker 创建处理 Promise
@@ -339,7 +358,8 @@ export class SymbolCacheManager {
             try {
                 const content = await fs.promises.readFile(filePath, 'utf-8');
                 const fileHash = FileHasher.hashString(content);
-                const symbols = SymbolParser.parseFile(filePath, content);
+                const relativePath = this.getRelativePath(filePath);
+                const symbols = SymbolParser.parseFile(relativePath, content);
 
                 this.addFileToCache({
                     filePath,
@@ -367,7 +387,7 @@ export class SymbolCacheManager {
             return;
         }
 
-        const relativePath = this.getRelativePath(result.filePath);
+        const relativePath = this.ensureRelativePath(result.filePath);
         
         // 将每个符号的 filePath 也转换为相对路径
         const symbolsWithRelativePath = result.symbols.map(symbol => ({
@@ -553,6 +573,9 @@ export class SymbolCacheManager {
         }
 
         try {
+
+            relativePath = this.ensureRelativePath(relativePath);
+
             const absolutePath = this.getAbsolutePath(relativePath);
             const content = await fs.promises.readFile(absolutePath, 'utf-8');
             const fileHash = FileHasher.hashString(content);
@@ -797,7 +820,7 @@ export class SymbolCacheManager {
             return [];
         }
 
-        const relativePath = this.getRelativePath(filePath);
+        const relativePath = this.ensureRelativePath(filePath);
         const fileCache = this.cache.files[relativePath];
 
         return fileCache ? fileCache.symbols : [];
@@ -873,9 +896,9 @@ export class SymbolCacheManager {
             clearTimeout(this.saveDebounceTimer);
         }
 
-        // 立即保存缓存
+        // 使用同步方式立即保存缓存，确保在插件关闭前完成写入
         if (this.cache) {
-            this.saveCacheImmediate();
+            this.saveCacheSync();
         }
     }
 }

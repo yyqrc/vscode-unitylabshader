@@ -121,14 +121,25 @@ export class SymbolParser {
         while ((match = regex.exec(content)) !== null) {
             const macroName = match[1].trim();
             const params = match[2] ? match[2].trim() : '';
-            const body = match[3] ? match[3].trim() : '';
-
-            const position = this.getPosition(content, match.index, lines);
-            const endPosition = this.findMacroEnd(content, match.index, lines);
+            
+            // 计算宏定义的实际开始位置（跳过前面的空白和换行符）
+            const defineStart = match[0].indexOf('#define');
+            if (defineStart === -1) {
+                continue; // 不应该发生，但安全起见
+            }
+            
+            const macroStartIndex = match.index + defineStart;
+            const position = this.getPosition(content, macroStartIndex, lines);
+            const endPosition = this.findMacroEnd(content, macroStartIndex, lines);
 
             // 生成宏签名
             const signature = params ? `#define ${macroName}(${params})` : `#define ${macroName}`;
-            const definitionText = match[0];
+            
+            // 获取完整的定义文本（从宏定义开始到结束位置）
+            const fullDefinitionText = this.getTextBetweenPositions(content, position, endPosition);
+            
+            // 计算体内容：从定义文本中移除宏签名部分
+            const body = this.extractMacroBody(fullDefinitionText, macroName, params);
 
             symbols.push({
                 name: macroName,
@@ -140,11 +151,69 @@ export class SymbolParser {
                 endColumn: endPosition.character,
                 signature,
                 contentHash: FileHasher.hashString(signature + body),
-                definitionText,
+                definitionText: fullDefinitionText,
             });
         }
 
         return symbols;
+    }
+
+    /**
+     * 根据起始位置和结束位置获取文本内容
+     */
+    private static getTextBetweenPositions(content: string, startPos: Position, endPos: Position): string {
+        const lines = content.split('\n');
+        
+        // 处理Windows换行符：计算索引时需要考虑\r字符
+        let startIndex = 0;
+        for (let i = 0; i < startPos.line; i++) {
+            // 每行的实际长度 = 行内容长度 + 换行符长度
+            const lineContent = lines[i];
+            let newlineLength = 1; // 默认是\n
+            // 检查当前行在原始内容中的换行符类型
+            const lineStartInContent = startIndex;
+            const expectedLineEnd = lineStartInContent + lineContent.length;
+            if (expectedLineEnd < content.length && content[expectedLineEnd] === '\r') {
+                newlineLength = 2; // \r\n
+            }
+            startIndex += lineContent.length + newlineLength;
+        }
+        startIndex += startPos.character;
+        
+        // 计算结束位置对应的字符索引
+        let endIndex = 0;
+        for (let i = 0; i < endPos.line; i++) {
+            const lineContent = lines[i];
+            let newlineLength = 1;
+            
+            const lineStartInContent = endIndex;
+            const expectedLineEnd = lineStartInContent + lineContent.length;
+            if (expectedLineEnd < content.length && content[expectedLineEnd] === '\r') {
+                newlineLength = 2;
+            }
+            endIndex += lineContent.length + newlineLength;
+        }
+        endIndex += endPos.character;
+        
+        return content.substring(startIndex, endIndex).trim();
+    }
+    
+    /**
+     * 从宏定义文本中提取体内容
+     */
+    private static extractMacroBody(definitionText: string, macroName: string, params: string): string {
+        // 构建宏签名
+        const signature = params ? `#define ${macroName}(${params})` : `#define ${macroName}`;
+        
+        // 找到签名在定义文本中的位置
+        const signatureIndex = definitionText.indexOf(signature);
+        if (signatureIndex === -1) {
+            return '';
+        }
+        
+        // 体内容从签名之后开始
+        const bodyStart = signatureIndex + signature.length;
+        return definitionText.substring(bodyStart).trim();
     }
 
     /**
@@ -294,7 +363,15 @@ export class SymbolParser {
     private static getPosition(content: string, index: number, lines: string[]): Position {
         let currentIndex = 0;
         for (let i = 0; i < lines.length; i++) {
-            const lineLength = lines[i].length + 1; // +1 for newline
+            // 处理Windows换行符：行长度 + 换行符长度（\n或\r\n）
+            let newlineLength = 1; // 默认是\n
+            const actualLineEnd = currentIndex + lines[i].length;
+            if (actualLineEnd < content.length && content[actualLineEnd] === '\r') {
+                // Windows换行符\r\n，换行符长度为2
+                newlineLength = 2;
+            }
+            const lineLength = lines[i].length + newlineLength;
+            
             if (currentIndex + lineLength > index) {
                 return { line: i, character: index - currentIndex };
             }
@@ -345,10 +422,11 @@ export class SymbolParser {
                 return this.getPosition(content, content.length, lines);
             }
 
-            // 检查行尾是否有反斜杠
+            // 检查行尾是否有反斜杠，处理Windows换行符
             const lineContent = content.substring(currentIndex, lineEnd).trimEnd();
-            if (!lineContent.endsWith('\\')) {
-                return this.getPosition(content, lineEnd, lines);
+            // 移除行尾的\r字符（Windows换行符\r\n中的\r）
+            const cleanedLineContent = lineContent.replace(/\r\$/, '');
+            if (!cleanedLineContent.endsWith('\\')) {                return this.getPosition(content, lineEnd, lines);
             }
 
             currentIndex = lineEnd + 1;

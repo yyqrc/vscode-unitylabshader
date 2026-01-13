@@ -6,6 +6,7 @@ import * as path from 'path';
 import { setHlslExtensions, setRgPath } from './common';
 import { EngineContextManager } from './common/engineContext';
 import { SymbolCacheManager } from './cache';
+import { RipgrepUtils } from './utils/CommonUtils';
 
 import HLSLHoverProvider from './hlsl/hoverProvider';
 import HLSLCompletionItemProvider from './hlsl/completionProvider';
@@ -77,6 +78,7 @@ export function activate(context: vscode.ExtensionContext) {
     // 初始化 ripgrep 路径（使用 VS Code 内置的 ripgrep）
     const rgPath = getVscodeRgPath();
     setRgPath(rgPath);
+    RipgrepUtils.setRgPath(rgPath);  // 同时初始化CommonUtils中的RipgrepUtils
     console.log('Using ripgrep at:', rgPath);
 
     // 处理文件关联配置

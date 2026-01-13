@@ -1,5 +1,6 @@
 import { parentPort, workerData } from 'worker_threads';
 import * as fs from 'fs';
+import * as path from 'path';
 import { SymbolParser } from './symbolParser';
 import { FileHasher } from './fileHasher';
 import { ParseFileRequest, ParseFileResult, WorkerMessage } from './symbolCacheTypes';
@@ -45,13 +46,17 @@ async function parseFile(request: ParseFileRequest): Promise<ParseFileResult> {
     // 读取文件内容（如果没有提供）
     let content = request.content;
     if (!content) {
-        content = await fs.promises.readFile(request.filePath, 'utf-8');
+        // 将相对路径转换为绝对路径
+        const absolutePath = request.workspacePath 
+            ? path.join(request.workspacePath, request.filePath)
+            : request.filePath;
+        content = await fs.promises.readFile(absolutePath, 'utf-8');
     }
 
     // 计算文件哈希
     const fileHash = FileHasher.hashString(content);
 
-    // 解析符号
+    // 解析符号（使用相对路径）
     const symbols = SymbolParser.parseFile(request.filePath, content);
 
     const parseTime = Date.now() - startTime;

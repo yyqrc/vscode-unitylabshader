@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { execSync } from 'child_process';
 import { join } from 'path';
 import { getRgPath } from '../common';
+import { RipgrepUtils } from '../utils/CommonUtils';
 
 /**
  * 符号类型枚举
@@ -187,41 +187,26 @@ export default class HLSLRenameProvider implements vscode.RenameProvider {
         const results: vscode.Location[] = [];
         
         try {
-            const includePattern = '-g *' + this._hlslPattern.join(' -g *');
-            const execOpts = {
-                cwd: rootPath,
-                maxBuffer: 1024 * 1024
-            };
-            
-            // 搜索宏定义和使用（词边界匹配）
+            // 使用RipgrepUtils统一接口
             const pattern = `\\b${this.escapeRegExp(name)}\\b`;
-            const output = execSync(`"${getRgPath()}" ${includePattern} --case-sensitive -H --line-number --column --hidden -e "${pattern}" .`, execOpts);
+            const matches = RipgrepUtils.searchReferences(pattern, rootPath, this._hlslPattern);
             
-            const lines = output.toString().split('\n');
-            for (const line of lines) {
-                const lineMatch = /^(?:((?:[a-zA-Z]:)?[^:]*):)?(\d+):(\d+):(.+)/.exec(line);
-                if (lineMatch) {
-                    const filepath = join(rootPath, lineMatch[1]);
-                    const lineNum = parseInt(lineMatch[2]) - 1;
-                    const lineText = lineMatch[4];
-                    
-                    // 找到符号的精确位置
-                    const nameMatch = new RegExp(`\\b(${this.escapeRegExp(name)})\\b`).exec(lineText);
-                    if (nameMatch) {
-                        const startCol = lineText.indexOf(nameMatch[1]);
-                        const endCol = startCol + name.length;
-                        const range = new vscode.Range(
-                            new vscode.Position(lineNum, startCol),
-                            new vscode.Position(lineNum, endCol)
-                        );
-                        results.push(new vscode.Location(vscode.Uri.file(filepath), range));
-                    }
+            // 转换为Location并精确定位符号位置
+            for (const match of matches) {
+                const lineText = match.text;
+                const nameMatch = new RegExp(`\\b(${this.escapeRegExp(name)})\\b`).exec(lineText);
+                if (nameMatch) {
+                    const startCol = lineText.indexOf(nameMatch[1]);
+                    const endCol = startCol + name.length;
+                    const range = new vscode.Range(
+                        new vscode.Position(match.line, startCol),
+                        new vscode.Position(match.line, endCol)
+                    );
+                    results.push(new vscode.Location(vscode.Uri.file(match.filePath), range));
                 }
             }
         } catch (error: any) {
-            if (error.status !== 1) { // status 1 means no matches
-                throw error;
-            }
+            // 错误已在RipgrepUtils中处理
         }
         
         return results;
@@ -234,41 +219,26 @@ export default class HLSLRenameProvider implements vscode.RenameProvider {
         const results: vscode.Location[] = [];
         
         try {
-            const includePattern = '-g *' + this._hlslPattern.join(' -g *');
-            const execOpts = {
-                cwd: rootPath,
-                maxBuffer: 1024 * 1024
-            };
-            
-            // 搜索函数名（包括定义和调用）
+            // 使用RipgrepUtils统一接口
             const pattern = `\\b${this.escapeRegExp(name)}\\s*\\(`;
-            const output = execSync(`"${getRgPath()}" ${includePattern} --case-sensitive -H --line-number --column --hidden -e "${pattern}" .`, execOpts);
+            const matches = RipgrepUtils.searchReferences(pattern, rootPath, this._hlslPattern);
             
-            const lines = output.toString().split('\n');
-            for (const line of lines) {
-                const lineMatch = /^(?:((?:[a-zA-Z]:)?[^:]*):)?(\d+):(\d+):(.+)/.exec(line);
-                if (lineMatch) {
-                    const filepath = join(rootPath, lineMatch[1]);
-                    const lineNum = parseInt(lineMatch[2]) - 1;
-                    const lineText = lineMatch[4];
-                    
-                    // 找到函数名的精确位置
-                    const funcNameMatch = new RegExp(`\\b(${this.escapeRegExp(name)})\\s*\\(`).exec(lineText);
-                    if (funcNameMatch) {
-                        const startCol = lineText.indexOf(funcNameMatch[1]);
-                        const endCol = startCol + name.length;
-                        const range = new vscode.Range(
-                            new vscode.Position(lineNum, startCol),
-                            new vscode.Position(lineNum, endCol)
-                        );
-                        results.push(new vscode.Location(vscode.Uri.file(filepath), range));
-                    }
+            // 转换为Location并精确定位符号位置
+            for (const match of matches) {
+                const lineText = match.text;
+                const funcNameMatch = new RegExp(`\\b(${this.escapeRegExp(name)})\\s*\\(`).exec(lineText);
+                if (funcNameMatch) {
+                    const startCol = lineText.indexOf(funcNameMatch[1]);
+                    const endCol = startCol + name.length;
+                    const range = new vscode.Range(
+                        new vscode.Position(match.line, startCol),
+                        new vscode.Position(match.line, endCol)
+                    );
+                    results.push(new vscode.Location(vscode.Uri.file(match.filePath), range));
                 }
             }
         } catch (error: any) {
-            if (error.status !== 1) {
-                throw error;
-            }
+            // 错误已在RipgrepUtils中处理
         }
         
         return results;
@@ -281,41 +251,26 @@ export default class HLSLRenameProvider implements vscode.RenameProvider {
         const results: vscode.Location[] = [];
         
         try {
-            const includePattern = '-g *' + this._hlslPattern.join(' -g *');
-            const execOpts = {
-                cwd: rootPath,
-                maxBuffer: 1024 * 1024
-            };
-            
-            // 搜索结构体名称
+            // 使用RipgrepUtils统一接口
             const pattern = `\\b${this.escapeRegExp(name)}\\b`;
-            const output = execSync(`"${getRgPath()}" ${includePattern} --case-sensitive -H --line-number --column --hidden -e "${pattern}" .`, execOpts);
+            const matches = RipgrepUtils.searchReferences(pattern, rootPath, this._hlslPattern);
             
-            const lines = output.toString().split('\n');
-            for (const line of lines) {
-                const lineMatch = /^(?:((?:[a-zA-Z]:)?[^:]*):)?(\d+):(\d+):(.+)/.exec(line);
-                if (lineMatch) {
-                    const filepath = join(rootPath, lineMatch[1]);
-                    const lineNum = parseInt(lineMatch[2]) - 1;
-                    const lineText = lineMatch[4];
-                    
-                    // 找到结构体名的精确位置
-                    const structNameMatch = new RegExp(`\\b(${this.escapeRegExp(name)})\\b`).exec(lineText);
-                    if (structNameMatch) {
-                        const startCol = lineText.indexOf(structNameMatch[1]);
-                        const endCol = startCol + name.length;
-                        const range = new vscode.Range(
-                            new vscode.Position(lineNum, startCol),
-                            new vscode.Position(lineNum, endCol)
-                        );
-                        results.push(new vscode.Location(vscode.Uri.file(filepath), range));
-                    }
+            // 转换为Location并精确定位符号位置
+            for (const match of matches) {
+                const lineText = match.text;
+                const structNameMatch = new RegExp(`\\b(${this.escapeRegExp(name)})\\b`).exec(lineText);
+                if (structNameMatch) {
+                    const startCol = lineText.indexOf(structNameMatch[1]);
+                    const endCol = startCol + name.length;
+                    const range = new vscode.Range(
+                        new vscode.Position(match.line, startCol),
+                        new vscode.Position(match.line, endCol)
+                    );
+                    results.push(new vscode.Location(vscode.Uri.file(match.filePath), range));
                 }
             }
         } catch (error: any) {
-            if (error.status !== 1) {
-                throw error;
-            }
+            // 错误已在RipgrepUtils中处理
         }
         
         return results;
@@ -328,41 +283,26 @@ export default class HLSLRenameProvider implements vscode.RenameProvider {
         const results: vscode.Location[] = [];
         
         try {
-            const includePattern = '-g *' + this._hlslPattern.join(' -g *');
-            const execOpts = {
-                cwd: rootPath,
-                maxBuffer: 1024 * 1024
-            };
-            
-            // 搜索变量名（词边界匹配）
+            // 使用RipgrepUtils统一接口
             const pattern = `\\b${this.escapeRegExp(name)}\\b`;
-            const output = execSync(`"${getRgPath()}" ${includePattern} --case-sensitive -H --line-number --column --hidden -e "${pattern}" .`, execOpts);
+            const matches = RipgrepUtils.searchReferences(pattern, rootPath, this._hlslPattern);
             
-            const lines = output.toString().split('\n');
-            for (const line of lines) {
-                const lineMatch = /^(?:((?:[a-zA-Z]:)?[^:]*):)?(\d+):(\d+):(.+)/.exec(line);
-                if (lineMatch) {
-                    const filepath = join(rootPath, lineMatch[1]);
-                    const lineNum = parseInt(lineMatch[2]) - 1;
-                    const lineText = lineMatch[4];
-                    
-                    // 找到变量名的精确位置
-                    const varNameMatch = new RegExp(`\\b(${this.escapeRegExp(name)})\\b`).exec(lineText);
-                    if (varNameMatch) {
-                        const startCol = lineText.indexOf(varNameMatch[1]);
-                        const endCol = startCol + name.length;
-                        const range = new vscode.Range(
-                            new vscode.Position(lineNum, startCol),
-                            new vscode.Position(lineNum, endCol)
-                        );
-                        results.push(new vscode.Location(vscode.Uri.file(filepath), range));
-                    }
+            // 转换为Location并精确定位符号位置
+            for (const match of matches) {
+                const lineText = match.text;
+                const varNameMatch = new RegExp(`\\b(${this.escapeRegExp(name)})\\b`).exec(lineText);
+                if (varNameMatch) {
+                    const startCol = lineText.indexOf(varNameMatch[1]);
+                    const endCol = startCol + name.length;
+                    const range = new vscode.Range(
+                        new vscode.Position(match.line, startCol),
+                        new vscode.Position(match.line, endCol)
+                    );
+                    results.push(new vscode.Location(vscode.Uri.file(match.filePath), range));
                 }
             }
         } catch (error: any) {
-            if (error.status !== 1) {
-                throw error;
-            }
+            // 错误已在RipgrepUtils中处理
         }
         
         return results;

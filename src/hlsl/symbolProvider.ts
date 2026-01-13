@@ -2,9 +2,9 @@
 
 import { DocumentSymbolProvider, WorkspaceSymbolProvider, SymbolKind, SymbolInformation, CancellationToken, TextDocument, Position, Range, Location, Uri, Disposable, window, workspace, extensions, DocumentSymbol } from 'vscode';
 import { hlslExtensions, getRgPath } from '../common';
-import { execSync } from 'child_process';
 import { join } from 'path';
 import { SymbolCacheManager } from '../cache';
+import { RipgrepUtils } from '../utils/CommonUtils';
 
 interface ISymbolPattern { kind: SymbolKind, pattern: string }
 
@@ -32,26 +32,7 @@ const wsSearchPatterns: ISymbolPattern[] = [
     { kind: SymbolKind.Module, pattern: /^Shader\s+"([^"]+)"/.source },
 ];
 
-/**
- * 全面转义正则表达式特殊字符以避免 shell 命令错误
- * @param pattern 需要转义的正则表达式模式
- * @returns 转义后的模式
- */
-function escapeRegExpForShell(pattern: string): string {
-    // 首先处理最敏感的字符 - 双引号
-    let escaped = pattern.replace(/"/g, '\\"');
-    
-    // 处理美元符号
-    escaped = escaped.replace(/\$/g, '\\$');
-    
-    // 处理反引号
-    escaped = escaped.replace(/`/g, '\\`');
-    
-    // 处理感叹号（在某些 shell 中有特殊含义）
-    escaped = escaped.replace(/!/g, '\\!');
-    
-    return escaped;
-}
+// 转义函数已移至 CommonUtils.RipgrepUtils.escapeRegExpForShell
 
 
 
@@ -375,33 +356,33 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
                     if (query.startsWith(':')) {
                         let searchPattern = query.slice(3, query.length);
                         try {
-                            // 使用全面的转义函数
-                            const escapedPattern = escapeRegExpForShell(searchPattern);
+                            // 使用RipgrepUtils统一接口
+                            const escapedPattern = RipgrepUtils.escapeRegExpForShell(searchPattern);
                             this.devLog(`[Symbol] Searching custom pattern: ${searchPattern}`);
-                            let output = execSync(`"${getRgPath()}" ${includePattern} -o --case-sensitive -H --line-number --column --hidden -e "${escapedPattern}" .`, execOpts);
+                            
+                            const matches = RipgrepUtils.search({
+                                pattern: escapedPattern,
+                                rootPath,
+                                extensions: this._hlslPattern,
+                                useRegex: true,
+                            });
+                            
                             let kind = SymbolKind.Function;
                             if (query[1] === 'm') {
                                 kind = SymbolKind.Constant;
                             }
 
-                            let lines = output.toString().split('\n');
-                            for (let line of lines) {
-                                let lineMatch = /^(?:((?:[a-zA-Z]:)?[^:]*):)?(\d+):(\d):(.+)/.exec(line);
-                                if (lineMatch) {
-                                    let position: Position = new Position(parseInt(lineMatch[2]) - 1, parseInt(lineMatch[3]) - 1);
-                                    let range = new Range(position, position);
-                                    let filepath = join(rootPath, lineMatch[1]);
-                                    let regex = new RegExp(searchPattern);
-                                    let word = '?????';
-                                    let symbolMatch = regex.exec(lineMatch[4].toString());
-                                    if (symbolMatch) {
-                                        word = symbolMatch[1];
-                                        position = position.with({ character: symbolMatch[0].indexOf(word) });
-                                        range = new Range(position, position.translate(0, word.length));
-                                    }
-
-                                    let containerName = `${lineMatch[2]}`;
-                                    results.push(new SymbolInformation(word, kind, containerName, new Location(Uri.file(filepath), range)));
+                            for (const match of matches) {
+                                let regex = new RegExp(searchPattern);
+                                let word = '?????';
+                                let symbolMatch = regex.exec(match.text);
+                                if (symbolMatch) {
+                                    word = symbolMatch[1];
+                                    const startCol = symbolMatch[0].indexOf(word);
+                                    let position = new Position(match.line, startCol);
+                                    let range = new Range(position, position.translate(0, word.length));
+                                    let containerName = `${match.line + 1}`;
+                                    results.push(new SymbolInformation(word, kind, containerName, new Location(Uri.file(match.filePath), range)));
                                 }
                             }
                             this.devLog(`[Symbol] Found ${results.length} custom matches`);
@@ -417,101 +398,45 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
                             const searchPattern = entry.pattern;
                             const kindStartTime = Date.now();
 
-                            // 使用全面的转义函数
-                            const escapedPattern = escapeRegExpForShell(searchPattern);
+                            // 使用RipgrepUtils统一接口（带重试和fallback）
+                            const escapedPattern = RipgrepUtils.escapeRegExpForShell(searchPattern);
                             this.devLog(`[Symbol] Searching ${SymbolKind[kind]}`);
                             
                             // 策略4: 减少 Module 搜索的重试次数（从4次降到1次）
-                            let retryCount = 0;
                             const maxRetries = (kind === SymbolKind.Module) ? 0 : 2; // Module 不重试，其他类型最多重试2次
-                            let success = false;
+                            const fallbackPattern = RipgrepUtils.createFallbackPattern(searchPattern);
                             
-                            while (retryCount <= maxRetries && !success) {
-                                try {
-                                    const cmd = `"${getRgPath()}" ${includePattern} -o --case-sensitive -H --line-number --column --hidden -e "${escapedPattern}" .`;
-                                    
-                                    let output = execSync(cmd, execOpts);
-                                    
-                                    let lines = output.toString().split('\n');
-                                    let matchCount = 0;
-                                    for (let line of lines) {
-                                        let lineMatch = /^(?:((?:[a-zA-Z]:)?[^:]*):)?(\d+):(\d):(.+)/.exec(line);
-                                        if (lineMatch) {
-                                            matchCount++;
-                                            let position: Position = new Position(parseInt(lineMatch[2]) - 1, parseInt(lineMatch[3]) - 1);
-                                            let range = new Range(position, position);
-                                            let filepath = join(rootPath, lineMatch[1]);
-                                            let regex = new RegExp(searchPattern);
-                                            let word = '?????';
-                                            let symbolMatch = regex.exec(lineMatch[4].toString());
-                                            if (symbolMatch) {
-                                                word = symbolMatch[1];
-                                                position = position.with({ character: symbolMatch[0].indexOf(word) });
-                                                range = new Range(position, position.translate(0, word.length));
-                                            }
-
-                                            let containerName = `${lineMatch[2]} : ${lineMatch[4].split(' ')[0]}`;
-                                            results.push(new SymbolInformation(word, kind, containerName, new Location(Uri.file(filepath), range)));
-                                        }
-                                    }
-                                    if (matchCount > 0) {
-                                        this.devLog(`[Symbol] ✓ Found ${matchCount} ${SymbolKind[kind]} symbols`);
-                                    }
-                                    this.devLog(`[Performance] ${SymbolKind[kind]} search: ${Date.now() - kindStartTime}ms`);
-                                    success = true;
-                                } catch (execErr: any) {
-                                    retryCount++;
-                                    // 只在开发模式下输出重试日志
-                                    if (this.isDevelopment()) {
-                                        this.devLog(`[Symbol] Retry ${retryCount}/${maxRetries + 1}`);
-                                    }
-                                    
-                                    if (retryCount > maxRetries) {
-                                        // 最后一次尝试使用简化模式
-                                        this.devLog(`[Symbol] Trying fallback pattern...`);
-                                        try {
-                                            // 使用最基本的模式进行搜索
-                                            const basicPattern = searchPattern.replace(/\^/g, '').replace(/\$/g, '').replace(/\+/g, '').replace(/\*/g, '').replace(/\?/g, '').replace(/\{/g, '').replace(/\}/g, '').replace(/\[/g, '').replace(/\]/g, '').replace(/\(/g, '').replace(/\)/g, '').replace(/\|/g, '').replace(/\\/g, '');
-                                            
-                                            const cmd = `"${getRgPath()}" ${includePattern} -o --case-sensitive -H --line-number --column --hidden -e "${basicPattern}" .`;
-                                            
-                                            let output = execSync(cmd, execOpts);
-                                            
-                                            let lines = output.toString().split('\n');
-                                            let matchCount = 0;
-                                            for (let line of lines) {
-                                                let lineMatch = /^(?:((?:[a-zA-Z]:)?[^:]*):)?(\d+):(\d):(.+)/.exec(line);
-                                                if (lineMatch) {
-                                                    matchCount++;
-                                                    let position: Position = new Position(parseInt(lineMatch[2]) - 1, parseInt(lineMatch[3]) - 1);
-                                                    let range = new Range(position, position);
-                                                    let filepath = join(rootPath, lineMatch[1]);
-                                                    let regex = new RegExp(searchPattern);
-                                                    let word = '?????';
-                                                    let symbolMatch = regex.exec(lineMatch[4].toString());
-                                                    if (symbolMatch) {
-                                                        word = symbolMatch[1];
-                                                        position = position.with({ character: symbolMatch[0].indexOf(word) });
-                                                        range = new Range(position, position.translate(0, word.length));
-                                                    }
-
-                                                    let containerName = `${lineMatch[2]} : ${lineMatch[4].split(' ')[0]}`;
-                                                    results.push(new SymbolInformation(word, kind, containerName, new Location(Uri.file(filepath), range)));
-                                                }
-                                            }
-                                            if (matchCount > 0) {
-                                                this.devLog(`[Symbol] ✓ Found ${matchCount} symbols (fallback)`);
-                                            }
-                                            this.devLog(`[Performance] ${SymbolKind[kind]} fallback search: ${Date.now() - kindStartTime}ms`);
-                                            success = true; // 即使是简化模式也算成功
-                                        } catch (fallbackErr: any) {
-                                            this.devLog(`[Symbol] ✗ Fallback failed`);
-                                            // 即使失败也继续处理下一个模式，不要让一个模式的失败影响其他模式
-                                            break;
-                                        }
-                                    }
+                            const matches = RipgrepUtils.searchWithRetry(
+                                {
+                                    pattern: escapedPattern,
+                                    rootPath,
+                                    extensions: this._hlslPattern,
+                                    useRegex: true,
+                                },
+                                maxRetries,
+                                fallbackPattern
+                            );
+                            
+                            let matchCount = 0;
+                            for (const match of matches) {
+                                matchCount++;
+                                let regex = new RegExp(searchPattern);
+                                let word = '?????';
+                                let symbolMatch = regex.exec(match.text);
+                                if (symbolMatch) {
+                                    word = symbolMatch[1];
+                                    const startCol = symbolMatch[0].indexOf(word);
+                                    let position = new Position(match.line, startCol);
+                                    let range = new Range(position, position.translate(0, word.length));
+                                    let containerName = `${match.line + 1} : ${match.text.split(' ')[0]}`;
+                                    results.push(new SymbolInformation(word, kind, containerName, new Location(Uri.file(match.filePath), range)));
                                 }
                             }
+                            
+                            if (matchCount > 0) {
+                                this.devLog(`[Symbol] ✓ Found ${matchCount} ${SymbolKind[kind]} symbols`);
+                            }
+                            this.devLog(`[Performance] ${SymbolKind[kind]} search: ${Date.now() - kindStartTime}ms`);
                         }
                         catch (err: any) {
                             this.devLog(`[Symbol] Error: ${err.message}`);
