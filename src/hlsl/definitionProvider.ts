@@ -923,8 +923,20 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             }
             
             // 3. 默认行为：查找符号定义
+            const wordRange = document.getWordRangeAtPosition(position);
             const result = await this.getDefinitionLocations(document, position);
-            resolve(result);
+            
+            // 如果结果超过3个，显示快速选择面板
+            if (result.length > 3 && wordRange) {
+                const selected = await this.showQuickPickForDefinitions(result, document.getText(wordRange));
+                if (selected) {
+                    resolve(selected);
+                } else {
+                    resolve(result);
+                }
+            } else {
+                resolve(result);
+            }
         });
     }
 
@@ -934,5 +946,48 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
 
     public provideTypeDefinition(document: TextDocument, position: Position, token: CancellationToken): Thenable<Definition> {
         return this.getDefinitionLocations(document, position);
+    }
+
+    private async showQuickPickForDefinitions(locations: Location[], symbolName: string): Promise<Location | Location[] | undefined> {
+        interface DefinitionQuickPickItem {
+            label: string;
+            description?: string;
+            detail?: string;
+            location: Location;
+        }
+
+        const items: DefinitionQuickPickItem[] = await Promise.all(
+            locations.map(async (loc) => {
+                const doc = await workspace.openTextDocument(loc.uri);
+                const line = doc.lineAt(loc.range.start.line);
+                const preview = line.text.trim();
+                const fileName = loc.uri.fsPath.split(/[\\\/]/).pop() || '';
+                const relativePath = workspace.asRelativePath(loc.uri.fsPath);
+                
+                let symbolType = '$(symbol-misc)';
+                if (preview.match(/^\s*#define/)) {
+                    symbolType = '$(symbol-constant)';
+                } else if (preview.match(/^\s*struct\s+/)) {
+                    symbolType = '$(symbol-struct)';
+                } else if (preview.match(/\w+\s+\w+\s*\(/)) {
+                    symbolType = '$(symbol-method)';
+                }
+
+                return {
+                    label: `${symbolType} ${fileName}:${loc.range.start.line + 1}`,
+                    description: relativePath,
+                    detail: preview,
+                    location: loc
+                };
+            })
+        );
+
+        const selected = await window.showQuickPick(items, {
+            placeHolder: `选择 "${symbolName}" 的定义 (${locations.length} 个结果)`,
+            matchOnDescription: true,
+            matchOnDetail: true
+        });
+
+        return selected ? selected.location : undefined;
     }
 }

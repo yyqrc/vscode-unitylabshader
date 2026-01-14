@@ -110,7 +110,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.languages.registerSignatureHelpProvider(documentSelector, new HLSLSignatureHelpProvider(), '(', ','));
     
     // 注册引用查找提供器
-    context.subscriptions.push(vscode.languages.registerReferenceProvider(documentSelector, new HLSLReferenceProvider()));
+    context.subscriptions.push(vscode.languages.registerReferenceProvider(documentSelector, new HLSLReferenceProvider(symbolCacheManager || undefined)));
 
 	// 注册符号提供器（文档符号 + 工作区符号）
 	let symbolProvider = new HLSLSymbolProvider(symbolCacheManager);

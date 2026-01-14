@@ -1,4 +1,4 @@
 1.移动平台优化 | 移动端Shader开发专用工具支持 ✅ 已完成
 2.整理现有的md文档 将他们重新整理一下 去掉一些无用的过程 保留功能的介绍 如何实现以及现状。✅ 已完成
-3.通过第二阶段的整理文档后 优化一下现有代码 去掉一些冗余的模块
-4.#define LIGHTING_RESULT_COMBINE_FUNC LightingResultCombineIce 宏定义函数中LIGHTING_RESULT_COMBINE_FUNC是宏 LightingResultCombineIce则是函数 现在点击LightingResultCombineIce无法跳转成功
+3.通过第二阶段的整理文档后 优化一下现有代码 去掉一些冗余的模块 ✅ 已完成
+4.查找所有引用 查找所有实现 转到定义 转到类型定义 转到实现 转到引用
