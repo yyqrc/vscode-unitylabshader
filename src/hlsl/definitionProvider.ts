@@ -1,4 +1,3 @@
-
 import { DefinitionProvider, ImplementationProvider, TypeDefinitionProvider, SymbolInformation, TextDocument, Position, Location, CancellationToken, Definition, workspace, commands, Uri, Range, window } from 'vscode';
 import { CachedSymbolKind } from '../cache/symbolCacheTypes';
 import { join } from 'path';
@@ -244,8 +243,35 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
                 return 'function';
             }
             
-            // 宏定义：前面有 #define 或全大写
-            if (line.includes('#define') || word === word.toUpperCase()) {
+            // 判断是否在宏定义行上
+            if (line.includes('#define')) {
+                // 获取宏定义行的完整单词序列
+                const lineTokens = line.trim().split(/\s+/);
+                const defineIndex = lineTokens.findIndex(token => token === '#define');
+                
+                if (defineIndex !== -1) {
+                    // 宏名是#define后面的第一个单词
+                    const macroNameIndex = defineIndex + 1;
+                    
+                    // 判断当前单词是否是宏名
+                    const wordStartInLine = wordRange.start.character;
+                    const lineBeforeWord = line.substring(0, wordStartInLine);
+                    const tokensBeforeWord = lineBeforeWord.trim().split(/\s+/);
+                    
+                    // 如果当前单词前面有一个#define，并且当前单词是#define后面的第一个单词，那么它是宏名
+                    if (tokensBeforeWord.includes('#define') && tokensBeforeWord.filter(t => t !== '#define').length === 0) {
+                        // 当前单词是宏名
+                        return 'macro';
+                    } else {
+                        // 当前单词是宏值，可能是函数名、常量、数字等
+                        // 为了更准确，返回'unknown'让系统搜索所有可能类型
+                        return 'unknown';
+                    }
+                }
+            }
+            
+            // 非宏定义行，检查是否是全大写（可能是单独的宏）
+            if (word === word.toUpperCase()) {
                 return 'macro';
             }
             

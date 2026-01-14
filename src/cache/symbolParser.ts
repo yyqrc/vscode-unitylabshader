@@ -14,8 +14,8 @@ interface Position {
  * 负责从文件内容中提取函数、宏、结构体等符号
  */
 export class SymbolParser {
-    // 函数定义正则表达式
-    private static readonly FUNCTION_REGEX = /^\s*(?:inline\s+)?(?:static\s+)?(?:const\s+)?(\w+(?:\s*<[^>]+>)?)\s+(\w+)\s*\(([^)]*)\)\s*(?::\s*\w+\s*)?(?:\{|;)/gm;
+    // 函数定义正则表达式（支持跨行参数，避免匹配换行符）
+    private static readonly FUNCTION_REGEX = /[ \t]*(?:inline[ \t]+)?(?:static[ \t]+)?(?:const[ \t]+)?(\w+(?:[ \t]*<[^>]+>)?)[ \t]+(\w+)[ \t]*\(([\s\S]*?)\)[ \t]*(?::[ \t]*\w+[ \t]*)?(?:\{|;)/gm;
     
     // 宏定义正则表达式
     private static readonly MACRO_REGEX = /^\s*#define\s+(\w+)(?:\s*\(([^)]*)\))?\s*(.*?)(?:\\\s*$)?/gm;
@@ -88,6 +88,12 @@ export class SymbolParser {
 
             const position = this.getPosition(content, match.index, lines);
             const endPosition = this.findFunctionEnd(content, match.index, lines);
+            
+            // 查找函数名在行中的精确位置（类似parseShaders中的逻辑）
+            const lineText = lines[position.line];
+            const nameStartIndex = lineText.indexOf(functionName);
+            const nameColumn = nameStartIndex !== -1 ? nameStartIndex : position.character;
+            const nameEndColumn = nameColumn + functionName.length;
 
             // 生成函数签名（用于跨文件移动检测）
             const signature = `${returnType} ${functionName}(${params})`;
@@ -98,7 +104,7 @@ export class SymbolParser {
                 kind: CachedSymbolKind.Function,
                 filePath,
                 line: position.line,
-                column: position.character,
+                column: nameColumn,
                 endLine: endPosition.line,
                 endColumn: endPosition.character,
                 signature,
