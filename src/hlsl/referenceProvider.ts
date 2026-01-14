@@ -2,52 +2,66 @@
 import { ReferenceProvider, CancellationToken, TextDocument, Position, Location, ReferenceContext, SymbolInformation, commands, workspace, Uri, Range } from 'vscode';
 import * as vscode from 'vscode';
 import { SymbolCacheManager } from '../cache';
+import { RipgrepUtils } from '../utils/CommonUtils';
 
 export default class HLSLReferenceProvider implements ReferenceProvider {
     private cacheManager: SymbolCacheManager | null;
+    private readonly _hlslPattern = ['.hlsl', '.cginc', '.shader', '.cg', '.glsl', '.compute'];
 
     constructor(cacheManager?: SymbolCacheManager) {
         this.cacheManager = cacheManager || null;
     }
 
+    private devLog(message: string): void {
+        const enable = workspace.getConfiguration('unityshader').get<boolean>('dev.log', false);
+        if (enable) {
+            console.log(`[ReferenceProvider] ${message}`);
+        }
+    }
+
     public provideReferences(document: TextDocument, position: Position, context: ReferenceContext, token: CancellationToken): Thenable<Location[]>{
         return new Promise<Location[]>( async (resolve, reject) => {
-            const startTime = performance.now();
-            let results: Location[] = [];
+            const startTime = Date.now();
+            this.devLog(`========== Reference Search Started ==========`);
 
             let enable = workspace.getConfiguration('unityshader').get<boolean>('suggest.basic', true);
             let wordRange = document.getWordRangeAtPosition(position);
             if (!enable || !wordRange) {
-                resolve(results);
+                resolve([]);
                 return;
             }
 
             const name = document.getText(wordRange);
-            const lineText = document.lineAt(position).text;
-            const isMacro = /^\s*(?:#define|#if|#ifdef|#ifndef|#elif|#undef)\s+!*([a-zA-Z_\x7f-\xff][a-zA-Z0-9:_\x7f-\xff]*)\s*/.test(lineText);
+            this.devLog(`Looking for references: "${name}"`);
 
-            // 当前文件内引用（优先返回）
-            const text = document.getText();
-            const regex = new RegExp(`\\b${name}\\b`, 'gm');
-            let match: RegExpExecArray;
-            while (match = regex.exec(text) as RegExpExecArray) {
-                if (token.isCancellationRequested) {
-                    resolve(results);
-                    return;
+            let results: Location[] = [];
+
+            // 策略1: 使用 ripgrep 搜索所有引用（最快最准确）
+            if (workspace.workspaceFolders) {
+                const rgStartTime = Date.now();
+                this.devLog(`Starting ripgrep search...`);
+                
+                for (const folder of workspace.workspaceFolders) {
+                    if (token.isCancellationRequested) {
+                        resolve([]);
+                        return;
+                    }
+
+                    const rootPath = folder.uri.fsPath;
+                    const rgResults = await this.searchReferencesWithRipgrep(name, rootPath);
+                    results.push(...rgResults);
+                    
+                    this.devLog(`Ripgrep found ${rgResults.length} references in ${rootPath}`);
                 }
-                let refPosition = document.positionAt(match.index);
-                let range = document.getWordRangeAtPosition(refPosition);
-                if (range !== undefined) {
-                    results.push(new Location(document.uri, range));
-                }
+                
+                this.devLog(`Total ripgrep time: ${Date.now() - rgStartTime}ms`);
             }
 
-            // 跨文件引用：优先使用符号缓存
-            if (this.cacheManager) {
-                const cacheResults = this.findReferencesFromCache(name, document.uri);
-                results.push(...cacheResults);
-            } else {
-                // 降级到 WorkspaceSymbolProvider
+            // 策略2: 如果 ripgrep 未找到结果，降级到 WorkspaceSymbolProvider
+            if (results.length === 0) {
+                this.devLog(`Ripgrep found nothing, trying workspace symbol provider...`);
+                const lineText = document.lineAt(position).text;
+                const isMacro = /^\s*(?:#define|#if|#ifdef|#ifndef|#elif|#undef)\s+!*([a-zA-Z_\x7f-\xff][a-zA-Z0-9:_\x7f-\xff]*)\s*/.test(lineText);
                 const workspaceResults = await this.findReferencesFromWorkspace(name, isMacro, document.uri, token);
                 results.push(...workspaceResults);
             }
@@ -55,46 +69,41 @@ export default class HLSLReferenceProvider implements ReferenceProvider {
             // 去重
             results = this.deduplicateLocations(results);
             
-            const searchTime = performance.now() - startTime;
-            if (searchTime > 100) {
-                console.log(`[ReferenceProvider] Found ${results.length} references for "${name}" in ${searchTime.toFixed(2)}ms`);
-            }
+            const totalTime = Date.now() - startTime;
+            this.devLog(`========== Total time: ${totalTime}ms, Found: ${results.length} ==========`);
             
             resolve(results);
         });
     }
 
-    private findReferencesFromCache(symbolName: string, currentUri: Uri): Location[] {
-        if (!this.cacheManager) {
-            return [];
-        }
-        
-        // 使用 findSymbol 直接从缓存获取符号（不打开文件）
-        const symbols = this.cacheManager.findSymbol(symbolName);
-        if (symbols.length === 0) {
-            return [];
-        }
-        
-        const results: Location[] = [];
-        for (const symbol of symbols) {
-            try {
-                const uri = Uri.file(symbol.filePath);
-                // 跳过当前文件（已在当前文件中搜索过）
-                if (uri.toString() === currentUri.toString()) {
-                    continue;
-                }
-                
+    /**
+     * 使用 ripgrep 搜索符号的所有引用
+     * 注意：这里搜索的是所有使用位置，包括定义和引用
+     */
+    private async searchReferencesWithRipgrep(name: string, rootPath: string): Promise<Location[]> {
+        this.devLog(`[Ripgrep] Searching references for: "${name}"`);
+
+        try {
+            // 使用简单的单词边界匹配，查找所有使用位置
+            const pattern = `\\b${name}\\b`;
+            const matches = RipgrepUtils.searchReferences(pattern, rootPath, this._hlslPattern);
+            
+            // 转换为 Location
+            const results: Location[] = [];
+            for (const match of matches) {
                 const range = new Range(
-                    new Position(symbol.line, symbol.column),
-                    new Position(symbol.endLine, symbol.endColumn)
+                    new Position(match.line, match.column),
+                    new Position(match.line, match.column + name.length)
                 );
-                results.push(new Location(uri, range));
-            } catch (error) {
-                continue;
+                results.push(new Location(Uri.file(match.filePath), range));
             }
+            
+            this.devLog(`[Ripgrep] Found ${results.length} references`);
+            return results;
+        } catch (error: any) {
+            this.devLog(`[Ripgrep] Error: ${error.message}`);
+            return [];
         }
-        
-        return results;
     }
 
     private async findReferencesFromWorkspace(symbolName: string, isMacro: boolean, currentUri: Uri, token: CancellationToken): Promise<Location[]> {

@@ -4,7 +4,10 @@ import { DocumentSymbolProvider, WorkspaceSymbolProvider, SymbolKind, SymbolInfo
 import { hlslExtensions, getRgPath } from '../common';
 import { join } from 'path';
 import { SymbolCacheManager } from '../cache';
+import { CachedSymbolKind } from '../cache/symbolCacheTypes';
 import { RipgrepUtils } from '../utils/CommonUtils';
+import { LRUCache } from '../utils/LRUCache';
+import { FuzzyMatcher } from '../utils/FuzzyMatcher';
 
 interface ISymbolPattern { kind: SymbolKind, pattern: string }
 
@@ -45,12 +48,11 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
 	// 支持的文件扩展名
 	private _hlslPattern = ['.hlsl', '.hlsli', '.fx', '.fxh', '.vsh', '.psh', '.cginc', '.compute', '.shader', '.cg'];
 
-	// 符号缓存机制
-	private symbolCache: Map<string, { symbols: SymbolInformation[], timestamp: number }> = new Map();
-	private readonly CACHE_TTL = 30000; // 30秒缓存有效期
+	// LRU 缓存机制（用于工作区符号查询结果）
+	private queryCache: LRUCache<string, SymbolInformation[]>;
 	private readonly CACHE_KEY_PREFIX = 'workspace_symbols_';
 	
-	// 符号缓存管理器
+	// 符号缓存管理器（用于持久化符号定义）
 	private symbolCacheManager: SymbolCacheManager | null = null;
 
     /**
@@ -73,6 +75,9 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
 	constructor(symbolCacheManager?: SymbolCacheManager | null) {
 		this.symbolCacheManager = symbolCacheManager || null;
 		
+		// 初始化 LRU 缓存：最多50个条目，30秒有效期
+		this.queryCache = new LRUCache<string, SymbolInformation[]>(50, 30000);
+		
 		const extention = extensions.getExtension('vscode.hlsl');
         if (extention && extention.packageJSON 
             && extention.packageJSON.contributes
@@ -92,12 +97,12 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
         this._disposables.push(
             workspace.onDidChangeTextDocument(e => {
                 if (this.isHLSLFile(e.document.fileName)) {
-                    this.invalidateCache();
+                    this.invalidateCache(e.document.fileName);
                 }
             }),
             workspace.onDidSaveTextDocument(doc => {
                 if (this.isHLSLFile(doc.fileName)) {
-                    this.invalidateCache();
+                    this.invalidateCache(doc.fileName);
                 }
             }),
             workspace.onDidDeleteFiles(() => {
@@ -118,39 +123,17 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
 
     /**
      * 清除缓存
+     * @param fileName 可选，指定文件名则只清除相关缓存
      */
-    private invalidateCache(): void {
-        this.devLog(`[Cache] Invalidating symbol cache`);
-        this.symbolCache.clear();
-    }
-
-    /**
-     * 获取缓存的符号
-     */
-    private getCachedSymbols(cacheKey: string): SymbolInformation[] | null {
-        const cached = this.symbolCache.get(cacheKey);
-        if (cached) {
-            const age = Date.now() - cached.timestamp;
-            if (age < this.CACHE_TTL) {
-                this.devLog(`[Cache] Hit (age: ${age}ms)`);
-                return cached.symbols;
-            } else {
-                this.devLog(`[Cache] Expired (age: ${age}ms)`);
-                this.symbolCache.delete(cacheKey);
-            }
+    private invalidateCache(fileName?: string): void {
+        if (fileName) {
+            this.devLog(`[Cache] Invalidating cache for file: ${fileName}`);
+            // 清除所有查询缓存（因为文件变化可能影响任何查询结果）
+            this.queryCache.clear();
+        } else {
+            this.devLog(`[Cache] Invalidating all caches`);
+            this.queryCache.clear();
         }
-        return null;
-    }
-
-    /**
-     * 缓存符号
-     */
-    private setCachedSymbols(cacheKey: string, symbols: SymbolInformation[]): void {
-        this.symbolCache.set(cacheKey, {
-            symbols: symbols,
-            timestamp: Date.now()
-        });
-        this.devLog(`[Cache] Stored ${symbols.length} symbols`);
     }
 
     public dispose(){
@@ -324,20 +307,48 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
 
     public provideWorkspaceSymbols(query: string, token: CancellationToken): Thenable<SymbolInformation[]> {
 
-        return new Promise<SymbolInformation[]>((resolve, reject) => {
+        return new Promise<SymbolInformation[]>(async (resolve, reject) => {
             const startTime = Date.now();
             this.devLog(`[Performance] ========== Workspace Symbol Search Started ==========`);
             this.devLog(`[Symbol] Query: "${query}"`);
 
             let results: SymbolInformation[] = [];
 
-            // 检查缓存（仅对空查询使用缓存，因为空查询会返回所有符号）
-            if (!query || query.trim() === '') {
-                const cacheKey = this.CACHE_KEY_PREFIX + 'all';
-                const cached = this.getCachedSymbols(cacheKey);
-                if (cached) {
+            // 生成缓存键
+            const cacheKey = this.CACHE_KEY_PREFIX + (query || 'all');
+            
+            // 策略1: 检查 LRU 缓存
+            const cached = this.queryCache.get(cacheKey);
+            if (cached) {
+                this.devLog(`[Cache] Hit for query: "${query}"`);
+                
+                // 如果有查询条件，应用模糊匹配过滤和排序
+                if (query && query.trim() !== '') {
+                    const filtered = this.fuzzyFilterSymbols(query, cached);
+                    this.devLog(`[Performance] ========== Total time: ${Date.now() - startTime}ms (cached + filtered) ==========`);
+                    resolve(filtered);
+                } else {
                     this.devLog(`[Performance] ========== Total time: ${Date.now() - startTime}ms (cached) ==========`);
                     resolve(cached);
+                }
+                return;
+            }
+            
+            this.devLog(`[Cache] Miss for query: "${query}"`);
+            
+            // 策略2: 尝试从符号缓存管理器获取（持久化缓存）
+            if (this.symbolCacheManager && query && query.trim() !== '') {
+                const cacheResults = await this.searchFromSymbolCache(query);
+                if (cacheResults.length > 0) {
+                    this.devLog(`[SymbolCache] Found ${cacheResults.length} symbols`);
+                    results = cacheResults;
+                    
+                    // 缓存结果
+                    this.queryCache.set(cacheKey, results);
+                    
+                    const totalTime = Date.now() - startTime;
+                    this.devLog(`[Performance] ========== Total time: ${totalTime}ms (from symbol cache) ==========`);
+                    resolve(results);
                     return;
                 }
             }
@@ -446,11 +457,13 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
 
             }
 
-            // 缓存结果（仅对空查询缓存）
-            if (!query || query.trim() === '') {
-                const cacheKey = this.CACHE_KEY_PREFIX + 'all';
-                this.setCachedSymbols(cacheKey, results);
+            // 应用模糊匹配过滤
+            if (query && query.trim() !== '') {
+                results = this.fuzzyFilterSymbols(query, results);
             }
+            
+            // 缓存结果到 LRU 缓存
+            this.queryCache.set(cacheKey, results);
 
             const totalTime = Date.now() - startTime;
             this.devLog(`[Performance] ========== Total time: ${totalTime}ms, Found: ${results.length} symbols ==========`);
@@ -458,6 +471,102 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
             resolve(results);
         });
 
+    }
+
+    /**
+     * 从符号缓存管理器搜索符号
+     */
+    private async searchFromSymbolCache(query: string): Promise<SymbolInformation[]> {
+        if (!this.symbolCacheManager) {
+            return [];
+        }
+
+        const results: SymbolInformation[] = [];
+        
+        try {
+            // 使用 findSymbol 方法查找符号
+            const symbols = this.symbolCacheManager.findSymbol(query);
+            
+            if (symbols.length === 0) {
+                return [];
+            }
+            
+            this.devLog(`[SymbolCache] Found ${symbols.length} symbols for "${query}"`);
+            
+            let rootPath = "";
+            if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
+                rootPath = workspace.workspaceFolders[0].uri.fsPath;
+            }
+                
+            // 转换为 SymbolInformation 对象
+            for (const symbol of symbols) {
+                try {
+                    const absolutePath = join(rootPath, symbol.filePath);
+                    const uri = Uri.file(absolutePath);
+                    const range = new Range(
+                        new Position(symbol.line, symbol.column),
+                        new Position(symbol.endLine, symbol.endColumn)
+                    );
+                    const location = new Location(uri, range);
+                    
+                    results.push(new SymbolInformation(
+                        symbol.name,
+                        this.convertSymbolKind(symbol.kind),
+                        '', // containerName - CachedSymbol 没有这个字段
+                        location
+                    ));
+                } catch (error: any) {
+                    this.devLog(`[SymbolCache] Error converting symbol: ${error.message}`);
+                }
+            }
+        } catch (error: any) {
+            this.devLog(`[SymbolCache] Error: ${error.message}`);
+        }
+
+        return results;
+    }
+    
+    /**
+     * 转换符号类型
+     */
+    private convertSymbolKind(kind: CachedSymbolKind): SymbolKind {
+        switch (kind) {
+            case CachedSymbolKind.Function: return SymbolKind.Function;
+            case CachedSymbolKind.Variable: return SymbolKind.Variable;
+            case CachedSymbolKind.Struct: return SymbolKind.Struct;
+            case CachedSymbolKind.Class: return SymbolKind.Class;
+            case CachedSymbolKind.Constant: return SymbolKind.Constant;
+            case CachedSymbolKind.Macro: return SymbolKind.Constant;
+            case CachedSymbolKind.Typedef: return SymbolKind.TypeParameter;
+            case CachedSymbolKind.Interface: return SymbolKind.Interface;
+            case CachedSymbolKind.Shader: return SymbolKind.Module;
+            default: return SymbolKind.Variable;
+        }
+    }
+
+    /**
+     * 使用模糊匹配过滤和排序符号
+     */
+    private fuzzyFilterSymbols(query: string, symbols: SymbolInformation[]): SymbolInformation[] {
+        if (!query || query.trim() === '') {
+            return symbols;
+        }
+
+        const startTime = Date.now();
+        
+        // 使用模糊匹配
+        const matched = FuzzyMatcher.matchAndSort(
+            query,
+            symbols,
+            (symbol) => symbol.name,
+            false // 不区分大小写
+        );
+
+        const filtered = matched.map(m => m.item);
+        
+        this.devLog(`[FuzzyMatch] Filtered ${symbols.length} -> ${filtered.length} symbols in ${Date.now() - startTime}ms`);
+        
+        return filtered;
     }
 
 }

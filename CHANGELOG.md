@@ -2,6 +2,50 @@
 
 All notable changes to the "Unity Shader" extension will be documented in this file.
 
+## [0.1.10] - 2026-01-14
+
+### Added
+- 
+
+### Changed
+- 
+
+### Fixed
+- 
+
+## [0.1.9] - 2026-01-13
+
+### Added
+- 
+
+### Changed
+- 
+
+### Fixed
+- 
+
+## [0.1.8] - 2026-01-13
+
+### Added
+- 
+
+### Changed
+- 
+
+### Fixed
+- 
+
+## [0.1.7] - 2026-01-13
+
+### Added
+- 
+
+### Changed
+- 
+
+### Fixed
+- 
+
 ## [0.1.6] - 2026-01-12
 
 ### Added
