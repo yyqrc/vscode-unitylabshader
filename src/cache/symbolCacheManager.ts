@@ -854,6 +854,13 @@ export class SymbolCacheManager {
     }
 
     /**
+     * 获取缓存数据
+     */
+    getCache(): WorkspaceSymbolCache | null {
+        return this.cache;
+    }
+
+    /**
      * 清除缓存文件
      */
     async clearCache(): Promise<void> {

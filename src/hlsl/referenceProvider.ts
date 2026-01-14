@@ -2,25 +2,12 @@
 import { ReferenceProvider, CancellationToken, TextDocument, Position, Location, ReferenceContext, SymbolInformation, commands, workspace, Uri, Range } from 'vscode';
 import * as vscode from 'vscode';
 import { SymbolCacheManager } from '../cache';
-import { OptimizedCacheManager } from '../cache/OptimizedCacheManager';
-import { CachedSymbolKind } from '../cache/symbolCacheTypes';
 
 export default class HLSLReferenceProvider implements ReferenceProvider {
     private cacheManager: SymbolCacheManager | null;
-    private optimizedCache: OptimizedCacheManager | null = null;
 
     constructor(cacheManager?: SymbolCacheManager) {
         this.cacheManager = cacheManager || null;
-        if (this.cacheManager) {
-            this.initializeOptimizedCache();
-        }
-    }
-
-    private async initializeOptimizedCache(): Promise<void> {
-        if (!this.cacheManager) return;
-        
-        // OptimizedCacheManager 会自动从 SymbolCacheManager 获取缓存
-        this.optimizedCache = new OptimizedCacheManager();
     }
 
     public provideReferences(document: TextDocument, position: Position, context: ReferenceContext, token: CancellationToken): Thenable<Location[]>{
@@ -56,8 +43,8 @@ export default class HLSLReferenceProvider implements ReferenceProvider {
             }
 
             // 跨文件引用：优先使用符号缓存
-            if (this.optimizedCache) {
-                const cacheResults = await this.findReferencesFromCache(name, isMacro, document.uri, token);
+            if (this.cacheManager) {
+                const cacheResults = this.findReferencesFromCache(name, document.uri);
                 results.push(...cacheResults);
             } else {
                 // 降级到 WorkspaceSymbolProvider
@@ -77,47 +64,36 @@ export default class HLSLReferenceProvider implements ReferenceProvider {
         });
     }
 
-    private async findReferencesFromCache(symbolName: string, isMacro: boolean, currentUri: Uri, token: CancellationToken): Promise<Location[]> {
-        if (!this.optimizedCache) return [];
-
+    private findReferencesFromCache(symbolName: string, currentUri: Uri): Location[] {
+        if (!this.cacheManager) {
+            return [];
+        }
+        
+        // 使用 findSymbol 直接从缓存获取符号（不打开文件）
+        const symbols = this.cacheManager.findSymbol(symbolName);
+        if (symbols.length === 0) {
+            return [];
+        }
+        
         const results: Location[] = [];
-        const cache = this.optimizedCache.getCache();
-        if (!cache) return [];
-        
-        // 获取所有缓存的文件路径
-        const allFiles = Array.from(cache.files.keys());
-        
-        // 在每个文件中搜索符号引用
-        for (const filePath of allFiles) {
-            if (token.isCancellationRequested) break;
-            
+        for (const symbol of symbols) {
             try {
-                const fileUri = Uri.file(filePath);
-                if (fileUri.toString() === currentUri.toString()) continue;
-                
-                const document = await workspace.openTextDocument(fileUri);
-                const text = document.getText();
-                
-                // 使用正则表达式查找所有引用
-                const regex = new RegExp(`\\b${symbolName}\\b`, 'gm');
-                let match: RegExpExecArray | null;
-                
-                while ((match = regex.exec(text)) !== null) {
-                    if (token.isCancellationRequested) break;
-                    
-                    const position = document.positionAt(match.index);
-                    const range = document.getWordRangeAtPosition(position);
-                    
-                    if (range) {
-                        results.push(new Location(fileUri, range));
-                    }
+                const uri = Uri.file(symbol.filePath);
+                // 跳过当前文件（已在当前文件中搜索过）
+                if (uri.toString() === currentUri.toString()) {
+                    continue;
                 }
+                
+                const range = new Range(
+                    new Position(symbol.line, symbol.column),
+                    new Position(symbol.endLine, symbol.endColumn)
+                );
+                results.push(new Location(uri, range));
             } catch (error) {
-                // 文件可能已被删除或无法访问，跳过
                 continue;
             }
         }
-
+        
         return results;
     }
 
