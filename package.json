@@ -2,7 +2,7 @@
   "name": "UnityShader",
   "displayName": "Unity/Unreal Shader",
   "description": "Unity and Unreal Shader language support for VS Code - syntax highlighting, code completion, hover tips and more for .shader, .cginc, .hlsl, .compute, .usf, .ush files",
-  "version": "0.1.10",
+  "version": "1.0.1",
   "engines": {
     "vscode": "^1.87.0"
   },

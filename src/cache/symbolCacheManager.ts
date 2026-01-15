@@ -16,6 +16,7 @@ import {
 } from './symbolCacheTypes';
 import { FileHasher } from './fileHasher';
 import { SymbolParser } from './symbolParser';
+import { FuzzyMatcher } from '../utils/FuzzyMatcher';
 
 /**
  * 符号缓存管理器
@@ -746,6 +747,46 @@ export class SymbolCacheManager {
         }
 
         return symbols;
+    }
+
+    /**
+     * 模糊查询符号（遍历 symbolIndex 进行智能模糊匹配）
+     * 使用 FuzzyMatcher 进行子序列匹配和评分排序
+     * @param query 查询字符串
+     * @returns 所有匹配的符号列表，按匹配得分降序排序
+     */
+    querySymbol(query: string): CachedSymbol[] {
+        if (!this.cache || !query) {
+            return [];
+        }
+
+        // 收集所有符号名称和对应的符号
+        const symbolEntries: Array<{ name: string; symbol: CachedSymbol }> = [];
+
+        // 遍历 symbolIndex
+        for (const [symbolName, locations] of Object.entries(this.cache.symbolIndex)) {
+            // 获取该符号名称对应的所有符号
+            for (const location of locations) {
+                const fileCache = this.cache.files[location.filePath];
+                if (fileCache && fileCache.symbols[location.symbolIndex]) {
+                    symbolEntries.push({
+                        name: symbolName,
+                        symbol: fileCache.symbols[location.symbolIndex]
+                    });
+                }
+            }
+        }
+
+        // 使用 FuzzyMatcher 进行智能匹配和排序
+        const matched = FuzzyMatcher.matchAndSort(
+            query,
+            symbolEntries,
+            (entry) => entry.name,
+            false // 不区分大小写
+        );
+
+        // 提取匹配的符号
+        return matched.map(m => m.item.symbol);
     }
 
     /**

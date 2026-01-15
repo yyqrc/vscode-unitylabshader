@@ -484,8 +484,8 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
         const results: SymbolInformation[] = [];
         
         try {
-            // 使用 findSymbol 方法查找符号
-            const symbols = this.symbolCacheManager.findSymbol(query);
+            // 使用 querySymbol 方法进行模糊匹配查询
+            const symbols = this.symbolCacheManager.querySymbol(query);
             
             if (symbols.length === 0) {
                 return [];
