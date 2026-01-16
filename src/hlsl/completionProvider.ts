@@ -173,7 +173,7 @@ export default class HLSLCompletionItemProvider implements CompletionItemProvide
          * 例如：gmp 匹配 GetMaterialParameter
          */
         var isCamelCaseMatch = function(name: string, prefix: string): boolean {
-            if (prefix.length === 0) return false;
+            if (prefix.length === 0) {return false;}
             
             let prefixIndex = 0;
             const prefixLower = prefix.toLowerCase();
@@ -232,7 +232,7 @@ export default class HLSLCompletionItemProvider implements CompletionItemProvide
                 // 提取成员名（去掉 "对象名." 前缀）
                 const memberName = name.substring(memberPrefix.length);
                 // 如果没有输入成员前缀，显示所有该对象的成员
-                if (prefix.length === 0) return true;
+                if (prefix.length === 0) {return true;}
                 // 否则匹配成员名
                 const memberNameLower = memberName.toLowerCase();
                 const prefixLower = prefix.toLowerCase();
@@ -242,7 +242,7 @@ export default class HLSLCompletionItemProvider implements CompletionItemProvide
             }
             
             // 正常模式
-            if (prefix.length === 0) return true;
+            if (prefix.length === 0) {return true;}
             const nameLower = name.toLowerCase();
             const prefixLower = prefix.toLowerCase();
             // 支持前缀匹配、包含匹配和驼峰匹配

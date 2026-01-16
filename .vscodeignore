@@ -1,3 +1,4 @@
+# Development files
 .vscode/**
 .vscode-test/**
 src/**
@@ -14,17 +15,48 @@ vsc-extension-quickstart.md
 .prettierrc
 tsconfig.json
 esbuild.js
+
+# Dependencies (keep only ripgrep)
 node_modules/**
 !node_modules/@vscode/ripgrep/**
+
+# Build artifacts
 *.vsix
+out/test/**
+
+# Version control
 .git/**
 .github/**
+
+# Test files
 test/**
 tests/**
-out/test/**
+_test/**
 *.test.js
 *.spec.js
+
+# Documentation drafts
+BUILD_GUIDE.md
 TODO.md
 PROGRESS.md
 REQUIREMENTS.md
+next.md
+.codebuddy/**
+
+# Scripts
+scripts/**
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# IDE files
+*.swp
+*.swo
+*~
+
+# Additional files to exclude
+.iflow/**
+console.log
+doc/**
+docs/**

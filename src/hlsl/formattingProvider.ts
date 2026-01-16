@@ -145,8 +145,8 @@ export default class HLSLFormattingProvider implements vscode.DocumentFormatting
         for (let i = startLine; i < position.line; i++) {
             const line = document.lineAt(i).text;
             for (const char of line) {
-                if (char === '{') level++;
-                if (char === '}') level--;
+                if (char === '{') {level++;}
+                if (char === '}') {level--;}
             }
         }
         
@@ -159,9 +159,9 @@ export default class HLSLFormattingProvider implements vscode.DocumentFormatting
     private getIndentSize(line: string, currentLevel: number): number {
         let indentCount = 0;
         for (let i = 0; i < line.length; i++) {
-            if (line[i] === ' ') indentCount++;
-            else if (line[i] === '\t') indentCount += 4; // 假设制表符宽度为4个空格
-            else break; // 遇到非空白字符
+            if (line[i] === ' ') {indentCount++;}
+            else if (line[i] === '\t') {indentCount += 4;} // 假设制表符宽度为4个空格
+            else {break;} // 遇到非空白字符
         }
         return indentCount;
     }

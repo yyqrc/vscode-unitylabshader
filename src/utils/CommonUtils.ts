@@ -369,7 +369,7 @@ export class RipgrepUtils {
             for (const line of lines) {
                 // 解析 ripgrep 输出格式：filepath:lineNum:lineText
                 const match = /^([^:]+):(\d+):(.+)$/.exec(line);
-                if (!match) continue;
+                if (!match) {continue;}
                 
                 const [, relativePath, lineNumStr, lineText] = match;
                 const filepath = join(rootPath, relativePath);

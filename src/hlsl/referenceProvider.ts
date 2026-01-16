@@ -109,7 +109,7 @@ export default class HLSLReferenceProvider implements ReferenceProvider {
     private async findReferencesFromWorkspace(symbolName: string, isMacro: boolean, currentUri: Uri, token: CancellationToken): Promise<Location[]> {
         const results: Location[] = [];
 
-        if (token.isCancellationRequested) return results;
+        if (token.isCancellationRequested) {return results;}
 
         if (isMacro) {
             const query = `:m ${/^\s*(?:#define|#if|#ifdef|#ifndef|#elif|#undef)\s+!*(marcoName)\s*/.source}`.replace('marcoName', symbolName);
@@ -136,7 +136,7 @@ export default class HLSLReferenceProvider implements ReferenceProvider {
         const seen = new Set<string>();
         return locations.filter(loc => {
             const key = `${loc.uri.toString()}:${loc.range.start.line}:${loc.range.start.character}`;
-            if (seen.has(key)) return false;
+            if (seen.has(key)) {return false;}
             seen.add(key);
             return true;
         });

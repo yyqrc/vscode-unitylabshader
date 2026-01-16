@@ -42,7 +42,7 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
      * 初始化文件监听器（增量索引）
      */
     private initFileWatcher(): void {
-        if (this.fileWatcher) return;
+        if (this.fileWatcher) {return;}
         
         const pattern = '**/*.{hlsl,hlsli,fx,fxh,vsh,psh,cginc,compute,shader,cg,usf,ush}';
         this.fileWatcher = workspace.createFileSystemWatcher(pattern);
@@ -213,8 +213,8 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             const bIsOpen = openedFiles.has(b.uri.fsPath);
             
             // 已打开的文件优先
-            if (aIsOpen && !bIsOpen) return -1;
-            if (!aIsOpen && bIsOpen) return 1;
+            if (aIsOpen && !bIsOpen) {return -1;}
+            if (!aIsOpen && bIsOpen) {return 1;}
             
             // 都打开或都未打开，按文件名排序
             return a.uri.fsPath.localeCompare(b.uri.fsPath);
@@ -228,7 +228,7 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
         try {
             const line = document.lineAt(position.line).text;
             const wordRange = document.getWordRangeAtPosition(position);
-            if (!wordRange) return 'unknown';
+            if (!wordRange) {return 'unknown';}
             
             const word = document.getText(wordRange);
             const charAfter = line.charAt(wordRange.end.character);

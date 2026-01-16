@@ -1,10 +1,12 @@
-# Unity Shader Language Support
+# Unity Shader 语言支持
 
-[![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)](https://marketplace.visualstudio.com/items?itemName=your-publisher.UnityShader)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.md)
+[![版本](https://img.shields.io/badge/版本-1.0.1-blue.svg)](https://marketplace.visualstudio.com/items?itemName=your-publisher.UnityShader)
+[![许可证](https://img.shields.io/badge/许可证-MIT-green.svg)](LICENSE.md)
 [![VS Code](https://img.shields.io/badge/VS%20Code-1.87.0+-blue.svg)](https://code.visualstudio.com/)
 
-> 🎨 Professional Unity and Unreal Engine shader development support for Visual Studio Code
+> 🎨 为 Visual Studio Code 提供专业的 Unity 和 Unreal Engine Shader 开发支持
+
+[English](README.md) | 简体中文
 
 为 VS Code 提供完整的 Unity 和 Unreal Engine Shader 语言支持，包括语法高亮、智能补全、符号导航、语义分析等功能。支持 `.shader`, `.cginc`, `.hlsl`, `.compute`, `.usf`, `.ush` 等文件类型。
 
@@ -13,10 +15,10 @@
 ## ✨ 主要功能
 
 - ✨ **语法高亮** - 支持 ShaderLab 和 HLSL/CG 语法高亮
-- 💡 **代码补全** - HLSL 内置函数、Unity/URP 内置变量和函数补全
+- 💡 **智能补全** - HLSL 内置函数、Unity/URP 内置变量和函数补全
 - 📝 **悬停提示** - 显示函数签名和文档说明（支持中英文）
 - 🔍 **符号导航** - 大纲视图、转到定义、查找引用（支持跨文件）
-- ⚡ **智能分析** - 语义分析、变体分析、未使用变量检测
+- ⚡ **语义分析** - 变量类型推断、未使用变量检测、Shader 变体分析
 - 📱 **移动端优化** - 移动平台特性检测、half 精度建议、复杂度评分
 - 🔧 **代码重构** - 重命名符号、代码格式化（支持跨文件）
 - 📁 **代码折叠** - 支持 `{}` 括号、预处理器、代码块折叠
@@ -26,24 +28,23 @@
 
 ## 📸 功能展示
 
-<!-- 
-TODO: 添加截图和 GIF 演示
-在完成截图后，取消注释以下内容并添加实际的图片路径
+
 
 ### 智能代码补全
-![代码补全](images/screenshot-completion.png)
+![代码补全](images/completion.png)
 
 ### 悬停文档提示
-![悬停提示](images/screenshot-hover.png)
+![悬停提示](images/hover.png)
 
-### 跨文件符号导航
-![符号导航](images/demo-navigation.gif)
--->
+### 转到工作区符号
+![转到工作区符号](images/goto-symbol.png)
 
-*功能截图和演示即将添加...*
+### 转到定义
+![转到定义前](images/find-define1.png)
+![转到定义后](images/find-define2.png)
 
----
-
+### 查找所有引用
+![转到工作区符号](images/find-all-refs.png)
 ---
 
 ## 🚀 快速开始
@@ -55,7 +56,7 @@ TODO: 添加截图和 GIF 演示
 1. 打开 VS Code
 2. 按 `Ctrl+Shift+X` (Windows/Linux) 或 `Cmd+Shift+X` (Mac) 打开扩展视图
 3. 搜索 "Unity Shader"
-4. 点击 "Install" 安装
+4. 点击 "安装"
 
 **方法 2: 从 VSIX 文件安装**
 
@@ -135,7 +136,6 @@ fixed4 result = lerp(colorA, colorB, t);
 - **复杂度评分**: 评估 Shader 复杂度
 
 ---
----
 
 ## 📁 支持的文件类型
 
@@ -150,9 +150,6 @@ fixed4 result = lerp(colorA, colorB, t);
 | `.usf` | HLSL | Unreal Shader 文件 |
 | `.ush` | HLSL | Unreal Shader Header |
 
----
-
-## ⚙️ 配置选项
 ---
 
 ## ⚙️ 配置选项
@@ -187,10 +184,6 @@ fixed4 result = lerp(colorA, colorB, t);
   "unityshader.analysis.semanticAnalysis": true
 }
 ```
-
----
-
-## 🛠️ 开发
 
 ---
 

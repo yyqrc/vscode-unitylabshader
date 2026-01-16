@@ -2,141 +2,78 @@
 
 All notable changes to the "Unity Shader" extension will be documented in this file.
 
+Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+
+## [1.0.6] - 2026-01-16
+
+### Added
+- 
+
+### Changed
+- 
+
+### Fixed
+- 
+
+## [1.0.5] - 2026-01-16
+
+### Added
+- 
+
+### Changed
+- 
+
+### Fixed
+- 
+
+## [1.0.4] - 2026-01-16
+
+### Added
+- 
+
+### Changed
+- 
+
+### Fixed
+- 
+
 ## [1.0.1] - 2026-01-14
 
 ### Added
-- 
+- **Complete HLSL/CG Language Support**: Full syntax highlighting and IntelliSense for Unity and Unreal Engine shaders
+- **Intelligent Code Completion**: Context-aware suggestions for HLSL keywords, Unity built-in variables/functions, and URP-specific APIs
+- **Hover Documentation**: Instant documentation display for functions, variables, and shader properties
+- **Symbol Navigation**: Go to definition, find all references, and peek definition support
+- **Cross-File Rename**: Rename symbols across entire workspace with preview and batch editing
+- **Semantic Analysis**: Variable type inference, unused variable detection, and shader variant analysis
+- **Mobile Optimization Analysis**: Performance suggestions and compatibility checks for mobile platforms
+- **Multi-Engine Support**: Auto-detection and support for both Unity and Unreal Engine shader files
+- **Rich Snippets**: Pre-built code templates for common shader patterns and structures
+- **Configurable Features**: Extensive settings to customize language features and analysis behavior
 
 ### Changed
-- 
+- Improved symbol provider performance with async implementation
+- Enhanced fuzzy matching algorithm for better completion suggestions
+- Optimized cross-file search using ripgrep for faster rename operations
 
 ### Fixed
-- 
-
-## [2.0.0] - 2026-01-14
-
-### Added
-- 
-
-### Changed
-- 
-
-### Fixed
-- 
-
-## [1.0.0] - 2026-01-14
-
-### Added
-- 
-
-### Changed
-- 
-
-### Fixed
-- 
-
-## [0.1.11] - 2026-01-14
-
-### Added
-- 
-
-### Changed
-- 
-
-### Fixed
-- 
-
-## [0.1.10] - 2026-01-14
-
-### Added
-- 
-
-### Changed
-- 
-
-### Fixed
-- 
-
-## [0.1.9] - 2026-01-13
-
-### Added
-- 
-
-### Changed
-- 
-
-### Fixed
-- 
-
-## [0.1.8] - 2026-01-13
-
-### Added
-- 
-
-### Changed
-- 
-
-### Fixed
-- 
-
-## [0.1.7] - 2026-01-13
-
-### Added
-- 
-
-### Changed
-- 
-
-### Fixed
-- 
-
-## [0.1.6] - 2026-01-12
-
-### Added
-- 
-
-### Changed
-- 
-
-### Fixed
-- 
-
-## [0.1.5] - 2026-01-12
-
-### Added
-- 
-
-### Changed
-- 
-
-### Fixed
-- 
-
-## [0.1.4] - 2026-01-12
-
-### Added
-- 
-
-### Changed
-- 
-
-### Fixed
-- 
+- Symbol validation to prevent renaming of keywords and built-in functions
+- Type inference accuracy for complex shader variable declarations
 
 ## [0.1.3] - 2026-01-11
 
 ### Added
-- **跨文件重命名功能**：支持在整个工作区范围内重命名 HLSL/Shader 符号
-  - 自动查找所有文件中的引用
-  - 智能符号类型检测（宏、函数、变量、结构体）
-  - 重命名前显示预览界面，展示影响范围
-  - 支持批量编辑多个文件
-  - 基于 ripgrep 的高性能搜索
-- 添加详细的测试指南文档 (`doc/CROSS_FILE_RENAME_GUIDE.md`)
+- **Cross-file Rename Feature**: Supports renaming HLSL/Shader symbols across the entire workspace
+  - Automatically finds references in all files
+  - Intelligent symbol type detection (macros, functions, variables, structures)
+  - Preview interface before renaming to show the scope of impact
+  - Supports batch editing of multiple files
+  - High-performance search based on ripgrep
+- Added detailed test guide document (`doc/CROSS_FILE_RENAME_GUIDE.md`)
 
 ### Changed
-- 重命名提供器从同步改为异步实现，提升性能
-- 增强符号验证机制（关键字和内置函数保护）
+- Renaming provider changed from synchronous to asynchronous implementation, improving performance
+- Enhanced symbol validation mechanism (protection for keywords and built-in functions)
 
 ### Fixed
 - 
@@ -166,14 +103,14 @@ All notable changes to the "Unity Shader" extension will be documented in this f
 ## [0.1.0] - 2025-01-09
 
 ### Changed
-- 从 Unreal Shader 改造为 Unity Shader 插件
-- 支持的文件类型: `.shader`, `.cginc`, `.hlsl`, `.hlsli`, `.compute`, `.cg`
-- 更新语言 ID 为 `unityshader`
-- 更新配置项前缀为 `unityshader.`
+- Transformed from Unreal Shader to Unity Shader plugin
+- Supported file types: `.shader`, `.cginc`, `.hlsl`, `.hlsli`, `.compute`, `.cg`
+- Updated language ID to `unityshader`
+- Updated configuration item prefix to `unityshader.`
 
 ### Added
-- Unity Shader 基础语言支持
-- HLSL/CG 语法高亮
-- 代码补全功能
-- 悬停提示功能
-- 符号导航功能
+- Basic language support for Unity Shader
+- HLSL/CG syntax highlighting
+- Code completion feature
+- Hover tooltip feature
+- Symbol navigation feature

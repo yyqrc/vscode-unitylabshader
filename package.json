@@ -1,14 +1,24 @@
 {
   "name": "UnityShader",
-  "displayName": "Unity/Unreal Shader",
+  "displayName": "Unity Shader",
   "description": "Unity and Unreal Shader language support for VS Code - syntax highlighting, code completion, hover tips and more for .shader, .cginc, .hlsl, .compute, .usf, .ush files",
-  "version": "1.0.1",
+  "version": "1.0.6",
+  "publisher": "ashiqi",
+  "author": {
+    "name": "阿十七 & CodeBuddy"
+  },
+  "license": "MIT",
   "engines": {
     "vscode": "^1.87.0"
   },
   "categories": [
     "Programming Languages"
   ],
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
+  "icon": "icon.png",
   "keywords": [
     "unity",
     "unreal",
@@ -19,7 +29,18 @@
     "cginc",
     "compute shader",
     "usf",
-    "ush"
+    "ush",
+    "urp",
+    "universal render pipeline",
+    "syntax highlighting",
+    "intellisense",
+    "code completion",
+    "hover",
+    "definition",
+    "references",
+    "rename",
+    "mobile optimization",
+    "shader analysis"
   ],
   "bugs": {
     "url": "https://github.com/yyqrc/vscode-unityshader/issues"
@@ -111,7 +132,7 @@
         },
         "unityshader.mobile.enabled": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Enable/disable mobile platform optimization analysis. | 启用/禁用移动平台优化分析。"
         },
         "unityshader.mobile.checkUnsupportedFeatures": {
@@ -207,7 +228,6 @@
   },
   "devDependencies": {
     "@types/node": "^18.19.130",
-    "@types/shell-quote": "^1.7.5",
     "@types/vscode": "^1.87.0",
     "@typescript-eslint/eslint-plugin": "^7.0.2",
     "@typescript-eslint/parser": "^7.0.2",
@@ -216,7 +236,6 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@vscode/ripgrep": "^1.15.9",
-    "shell-quote": "^1.8.3"
+    "@vscode/ripgrep": "^1.15.9"
   }
 }
