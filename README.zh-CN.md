@@ -31,20 +31,20 @@
 
 
 ### 智能代码补全
-![代码补全](images/completion.png)
+![代码补全](https://raw.githubusercontent.com/yyqrc/vscode-unitylabshader/master/images/completion.png)
 
 ### 悬停文档提示
-![悬停提示](images/hover.png)
+![悬停提示](https://raw.githubusercontent.com/yyqrc/vscode-unitylabshader/master/images/hover.png)
 
 ### 转到工作区符号
-![转到工作区符号](images/goto-symbol.png)
+![转到工作区符号](https://raw.githubusercontent.com/yyqrc/vscode-unitylabshader/master/images/goto-symbol.png)
 
 ### 转到定义
-![转到定义前](images/find-define1.png)
-![转到定义后](images/find-define2.png)
+![转到定义前](https://raw.githubusercontent.com/yyqrc/vscode-unitylabshader/master/images/find-define1.png)
+![转到定义后](https://raw.githubusercontent.com/yyqrc/vscode-unitylabshader/master/images/find-define2.png)
 
 ### 查找所有引用
-![转到工作区符号](images/find-all-refs.png)
+![转到工作区符号](https://raw.githubusercontent.com/yyqrc/vscode-unitylabshader/master/images/find-all-refs.png)
 ---
 
 ## 🚀 快速开始

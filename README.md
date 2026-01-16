@@ -1,182 +1,177 @@
 # Unity Shader Language Support
 
-[![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)](https://marketplace.visualstudio.com/items?itemName=your-publisher.UnityShader)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.md)
+[![Version](https://img.shields.io/badge/Version-1.0.1-blue.svg)](https://marketplace.visualstudio.com/items?itemName=your-publisher.UnityShader)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE.md)
 [![VS Code](https://img.shields.io/badge/VS%20Code-1.87.0+-blue.svg)](https://code.visualstudio.com/)
 
-> 🎨 Professional Unity and Unreal Engine shader development support for Visual Studio Code
+> 🎨 Professional Unity and Unreal Engine Shader development support for Visual Studio Code
 
-为 VS Code 提供完整的 Unity 和 Unreal Engine Shader 语言支持，包括语法高亮、智能补全、符号导航、语义分析等功能。支持 `.shader`, `.cginc`, `.hlsl`, `.compute`, `.usf`, `.ush` 等文件类型。
+[English](README.md) | Simplified Chinese
 
----
-
-## ✨ 主要功能
-
-- ✨ **语法高亮** - 支持 ShaderLab 和 HLSL/CG 语法高亮
-- 💡 **代码补全** - HLSL 内置函数、Unity/URP 内置变量和函数补全
-- 📝 **悬停提示** - 显示函数签名和文档说明（支持中英文）
-- 🔍 **符号导航** - 大纲视图、转到定义、查找引用（支持跨文件）
-- ⚡ **智能分析** - 语义分析、变体分析、未使用变量检测
-- 📱 **移动端优化** - 移动平台特性检测、half 精度建议、复杂度评分
-- 🔧 **代码重构** - 重命名符号、代码格式化（支持跨文件）
-- 📁 **代码折叠** - 支持 `{}` 括号、预处理器、代码块折叠
-- 🎮 **Unreal 支持** - 支持 `.usf`/`.ush` 文件和 Unreal 函数补全
+Provides complete Unity and Unreal Engine Shader language support for VS Code, including syntax highlighting, intelligent completion, symbol navigation, semantic analysis, and more. Supports file types such as `.shader`, `.cginc`, `.hlsl`, `.compute`, `.usf`, `.ush`.
 
 ---
 
-## 📸 功能展示
+## ✨ Main Features
 
-<!-- 
-TODO: 添加截图和 GIF 演示
-在完成截图后，取消注释以下内容并添加实际的图片路径
-
-### 智能代码补全
-![代码补全](images/screenshot-completion.png)
-
-### 悬停文档提示
-![悬停提示](images/screenshot-hover.png)
-
-### 跨文件符号导航
-![符号导航](images/demo-navigation.gif)
--->
-
-*功能截图和演示即将添加...*
+- ✨ **Syntax Highlighting** - Support for ShaderLab and HLSL/CG syntax highlighting
+- 💡 **Intelligent Completion** - Built-in HLSL functions, Unity/URP built-in variables and function completion
+- 📝 **Hover Documentation** - Displays function signatures and documentation (supports both Chinese and English)
+- 🔍 **Symbol Navigation** - Outline view, go to definition, find references (supports cross-file)
+- ⚡ **Semantic Analysis** - Variable type inference, unused variable detection, Shader variant analysis
+- 📱 **Mobile Optimization** - Detection of mobile platform features, half precision suggestions, complexity scoring
+- 🔧 **Code Refactoring** - Rename symbols, code formatting (supports cross-file)
+- 📁 **Code Folding** - Supports `{}` brackets, preprocessor, code block folding
+- 🎮 **Unreal Support** - Supports `.usf`/`.ush` files and Unreal function completion
 
 ---
 
+## 📸 Feature Showcase
+
+### Intelligent Code Completion
+![Code Completion](https://raw.githubusercontent.com/yyqrc/vscode-unitylabshader/master/images/completion.png)
+
+### Hover Documentation Tips
+![Hover Tips](https://raw.githubusercontent.com/yyqrc/vscode-unitylabshader/master/images/hover.png)
+
+### Go to Workspace Symbol
+![Go to Workspace Symbol](https://raw.githubusercontent.com/yyqrc/vscode-unitylabshader/master/images/goto-symbol.png)
+
+### Go to Definition
+![Before Go to Definition](https://raw.githubusercontent.com/yyqrc/vscode-unitylabshader/master/images/find-define1.png)
+![After Go to Definition](https://raw.githubusercontent.com/yyqrc/vscode-unitylabshader/master/images/find-define2.png)
+
+### Find All References
+![Find All References](https://raw.githubusercontent.com/yyqrc/vscode-unitylabshader/master/images/find-all-refs.png)
 ---
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 安装
+### Installation
 
-**方法 1: 从 VS Code Marketplace 安装（推荐）**
+**Method 1: Install from VS Code Marketplace (Recommended)**
 
-1. 打开 VS Code
-2. 按 `Ctrl+Shift+X` (Windows/Linux) 或 `Cmd+Shift+X` (Mac) 打开扩展视图
-3. 搜索 "Unity Shader"
-4. 点击 "Install" 安装
+1. Open VS Code
+2. Press `Ctrl+Shift+X` (Windows/Linux) or `Cmd+Shift+X` (Mac) to open the extensions view
+3. Search for "Unity Shader"
+4. Click "Install"
 
-**方法 2: 从 VSIX 文件安装**
+**Method 2: Install from VSIX file**
 
 ```bash
 code --install-extension UnityShader-1.0.1.vsix
 ```
 
-### 使用
+### Usage
 
-1. **打开 Shader 文件**  
-   打开任意 `.shader`、`.cginc`、`.hlsl` 或 `.compute` 文件，插件会自动激活
+1. **Open a Shader File**  
+   Open any `.shader`, `.cginc`, `.hlsl`, or `.compute` file, and the plugin will activate automatically.
 
-2. **开始编码**  
-   - 输入 HLSL 函数名（如 `lerp`）查看智能补全
-   - 悬停在函数上查看文档说明
-   - 按住 `Ctrl/Cmd` 点击符号跳转到定义
-   - 右键选择"重命名符号"进行跨文件重命名
+2. **Start Coding**  
+   - Type HLSL function names (e.g., `lerp`) to see intelligent completion
+   - Hover over functions to view documentation
+   - Hold `Ctrl/Cmd` and click symbols to jump to definitions
+   - Right-click and select "Rename Symbol" to rename across files
 
 ---
 
-## 💡 功能详解
+## 💡 Feature Details
 
-### 智能代码补全
+### Intelligent Code Completion
 
-输入代码时自动显示相关建议：
+Relevant suggestions are automatically displayed while typing code:
 
-- **HLSL 内置函数**: `lerp`, `saturate`, `dot`, `cross` 等 200+ 函数
-- **Unity 内置变量**: `_Time`, `_WorldSpaceCameraPos`, `unity_ObjectToWorld` 等
-- **Unity 内置函数**: `UnityObjectToClipPos`, `UNITY_MATRIX_MVP` 等
-- **URP 函数**: `TransformObjectToHClip`, `GetMainLight` 等
-- **语义标签**: `POSITION`, `TEXCOORD0`, `SV_Target` 等
+- **Built-in HLSL Functions**: Over 200 functions such as `lerp`, `saturate`, `dot`, `cross`, etc.
+- **Unity Built-in Variables**: `_Time`, `_WorldSpaceCameraPos`, `unity_ObjectToWorld`, etc.
+- **Unity Built-in Functions**: `UnityObjectToClipPos`, `UNITY_MATRIX_MVP`, etc.
+- **URP Functions**: `TransformObjectToHClip`, `GetMainLight`, etc.
+- **Semantic Tags**: `POSITION`, `TEXCOORD0`, `SV_Target`, etc.
 
 ```hlsl
-// 示例：输入 "lerp" 触发补全
+// Example: Type "lerp" to trigger completion
 fixed4 result = lerp(colorA, colorB, t);
 ```
 
-### 悬停文档提示
+### Hover Documentation Tips
 
-将鼠标悬停在函数或变量上，查看详细文档：
+Hover the mouse over functions or variables to view detailed documentation:
 
-- 函数签名和参数说明
-- 返回值类型
-- 使用示例
-- 支持中英文文档
+- Function signatures and parameter descriptions
+- Return value types
+- Usage examples
+- Supports documentation in both Chinese and English
 
-### 符号导航
+### Symbol Navigation
 
-#### 跳转到定义 (Go to Definition)
-- 按住 `Ctrl/Cmd` 点击符号跳转到定义
-- 支持跨文件跳转（`.cginc` 文件）
-- 支持宏定义跳转
-- 支持 `#include` 文件跳转
-- 支持 `FallBack` Shader 跳转
+#### Go to Definition
+- Hold `Ctrl/Cmd` and click the symbol to jump to its definition
+- Supports cross-file jumps (to `.cginc` files)
+- Supports macro definition jumps
+- Supports `#include` file jumps
+- Supports `FallBack` Shader jumps
 
-#### 查找所有引用 (Find All References)
-- 右键选择"查找所有引用"
-- 显示符号在项目中的所有使用位置
-- 支持跨文件搜索
+#### Find All References
+- Right-click and select "Find All References"
+- Displays all usage locations of the symbol in the project
+- Supports cross-file searches
 
-#### 重命名符号 (Rename Symbol)
-- 右键选择"重命名符号"
-- 支持跨文件批量重命名
-- 显示预览并可撤销
+#### Rename Symbol
+- Right-click and select "Rename Symbol"
+- Supports bulk renaming across files
+- Shows preview and allows undo
 
-### 语义分析
+### Semantic Analysis
 
-- **变量类型推断**: 自动推断变量类型
-- **未使用变量检测**: 标记未使用的变量
-- **Shader 变体分析**: 分析 `#pragma multi_compile` 变体
+- **Variable Type Inference**: Automatically infers variable types
+- **Unused Variable Detection**: Marks unused variables
+- **Shader Variant Analysis**: Analyzes `#pragma multi_compile` variants
 
-### 移动端优化分析
+### Mobile Optimization Analysis
 
-- **性能建议**: 检测性能问题并提供优化建议
-- **精度建议**: 建议使用 `half` 代替 `float` 以提升移动端性能
-- **兼容性检查**: 检测移动平台不支持的特性
-- **复杂度评分**: 评估 Shader 复杂度
+- **Performance Suggestions**: Detects performance issues and provides optimization recommendations
+- **Precision Suggestions**: Recommends using `half` instead of `float` for better mobile performance
+- **Compatibility Checks**: Detects unsupported features on mobile platforms
+- **Complexity Scoring**: Evaluates Shader complexity
 
 ---
----
 
-## 📁 支持的文件类型
+## 📁 Supported File Types
 
-| 扩展名 | 语言 | 说明 |
-|--------|------|------|
-| `.shader` | ShaderLab | Unity ShaderLab 文件 |
-| `.cginc` | HLSL/CG | CG include 文件 |
-| `.hlsl` | HLSL | HLSL 着色器文件 |
-| `.hlsli` | HLSL | HLSL include 文件 |
-| `.compute` | HLSL | 计算着色器文件 |
-| `.cg` | CG | CG 着色器文件 |
-| `.usf` | HLSL | Unreal Shader 文件 |
+| Extension | Language | Description |
+|-----------|----------|-------------|
+| `.shader` | ShaderLab | Unity ShaderLab file |
+| `.cginc` | HLSL/CG | CG include file |
+| `.hlsl` | HLSL | HLSL shader file |
+| `.hlsli` | HLSL | HLSL include file |
+| `.compute` | HLSL | Compute shader file |
+| `.cg` | CG | CG shader file |
+| `.usf` | HLSL | Unreal Shader file |
 | `.ush` | HLSL | Unreal Shader Header |
 
 ---
 
-## ⚙️ 配置选项
----
+## ⚙️ Configuration Options
 
-## ⚙️ 配置选项
+Search for `unityshader` in VS Code settings to find all configuration items.
 
-在 VS Code 设置中搜索 `unityshader` 可以找到所有配置项。
+### Code Completion Settings
 
-### 代码补全设置
+| Configuration | Default Value | Description |
+|----------------|---------------|-------------|
+| `unityshader.suggest.basic` | `true` | Enable/disable HLSL basic function completion |
+| `unityshader.suggest.unity` | `true` | Enable/disable Unity built-in variable and function completion |
+| `unityshader.suggest.urp` | `true` | Enable/disable URP (Universal Render Pipeline) completion |
 
-| 配置项 | 默认值 | 说明 |
-|--------|--------|------|
-| `unityshader.suggest.basic` | `true` | 启用/禁用 HLSL 基础函数补全 |
-| `unityshader.suggest.unity` | `true` | 启用/禁用 Unity 内置变量和函数补全 |
-| `unityshader.suggest.urp` | `true` | 启用/禁用 URP (Universal Render Pipeline) 补全 |
+### Analysis Settings
 
-### 分析设置
+| Configuration | Default Value | Description |
+|----------------|---------------|-------------|
+| `unityshader.analysis.semanticAnalysis` | `true` | Enable/disable semantic analysis (type inference, unused variable detection) |
+| `unityshader.mobile.enabled` | `true` | Enable/disable mobile optimization analysis |
 
-| 配置项 | 默认值 | 说明 |
-|--------|--------|------|
-| `unityshader.analysis.semanticAnalysis` | `true` | 启用/禁用语义分析（类型推断、未使用变量检测） |
-| `unityshader.mobile.enabled` | `true` | 启用/禁用移动端优化分析 |
+### Example Configuration
 
-### 示例配置
-
-在 `settings.json` 中添加：
+Add the following to `settings.json`:
 
 ```json
 {
@@ -190,130 +185,126 @@ fixed4 result = lerp(colorA, colorB, t);
 
 ---
 
-## 🛠️ 开发
+## 🛠️ Development
 
----
-
-## 🛠️ 开发
-
-### 环境要求
+### Environment Requirements
 
 - Node.js >= 14.x
 - npm >= 6.x
 - VS Code >= 1.87.0
 
-### 构建和打包
+### Build and Package
 
-本项目提供自动版本管理和打包脚本：
+This project provides automatic version management and packaging scripts:
 
 ```bash
-# 日常修复打包（patch 版本：1.0.0 → 1.0.1）
+# Daily fix packaging (patch version: 1.0.0 → 1.0.1)
 npm run build
 
-# 新功能发布（minor 版本：1.0.0 → 1.1.0）
+# New feature release (minor version: 1.0.0 → 1.1.0)
 npm run build:minor
 
-# 重大更新（major 版本：1.0.0 → 2.0.0）
+# Major update (major version: 1.0.0 → 2.0.0)
 npm run build:major
 ```
 
-详细说明请查看 [BUILD_GUIDE.md](./BUILD_GUIDE.md)
+For details, please refer to [BUILD_GUIDE.md](./BUILD_GUIDE.md)
 
-### 开发脚本
+### Development Scripts
 
 ```bash
-# 安装依赖
+# Install dependencies
 npm install
 
-# 开发模式（监听文件变化，自动编译）
+# Development mode (watch for file changes and auto-compile)
 npm run watch
 
-# 编译 TypeScript
+# Compile TypeScript
 npm run compile
 
-# 类型检查
+# Type checking
 npm run check-types
 
-# 代码检查和自动修复
+# Code checking and auto-fix
 npm run lint
 npm run lint -- --fix
 ```
 
-### 项目结构
+### Project Structure
 
 ```
 vscode-unitylabshader/
-├── src/                    # TypeScript 源代码
-│   ├── hlsl/              # HLSL 语言支持
+├── src/                    # TypeScript source code
+│   ├── hlsl/              # HLSL language support
 │   │   ├── completionProvider.ts
 │   │   ├── hoverProvider.ts
 │   │   ├── definitionProvider.ts
 │   │   └── ...
-│   ├── data/              # 数据文件（函数定义、文档等）
-│   └── extension.ts       # 插件入口
-├── syntaxes/              # 语法高亮定义
-├── snippets/              # 代码片段
-├── out/                   # 编译输出
-└── package.json           # 插件配置
+│   ├── data/              # Data files (function definitions, documentation, etc.)
+│   └── extension.ts       # Plugin entry point
+├── syntaxes/              # Syntax highlighting definitions
+├── snippets/              # Code snippets
+├── out/                   # Compilation output
+└── package.json           # Plugin configuration
 ```
 
 ---
 
-## 📚 文档
+## 📚 Documentation
 
-- [功能文档](./doc/FEATURES.md) - 完整功能说明和使用示例
-- [技术规格](./doc/TECHNICAL_SPEC.md) - 架构设计和技术细节
-- [构建指南](./BUILD_GUIDE.md) - 构建和打包说明
-- [更新日志](./CHANGELOG.md) - 版本历史和变更记录
-- [任务清单](./TODO.md) - 开发进度和计划
-
----
-
-## 🤝 贡献
-
-欢迎贡献代码、报告问题或提出建议！
-
-### 报告问题
-
-如果您发现 bug 或有功能建议，请在 [GitHub Issues](https://github.com/your-repo/issues) 中提交。
-
-### 贡献代码
-
-1. Fork 本仓库
-2. 创建您的特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交您的更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 打开一个 Pull Request
+- [Feature Documentation](./doc/FEATURES.md) - Complete feature descriptions and usage examples
+- [Technical Specification](./doc/TECHNICAL_SPEC.md) - Architecture design and technical details
+- [Build Guide](./BUILD_GUIDE.md) - Build and packaging instructions
+- [Change Log](./CHANGELOG.md) - Version history and change records
+- [Task List](./TODO.md) - Development progress and plans
 
 ---
 
-## 📝 许可证
+## 🤝 Contribution
 
-本项目采用 MIT 许可证 - 查看 [LICENSE.md](LICENSE.md) 了解详情。
+Contributions, bug reports, and suggestions are welcome!
+
+### Reporting Issues
+
+If you find a bug or have a feature suggestion, please submit it to [GitHub Issues](https://github.com/your-repo/issues).
+
+### Contributing Code
+
+1. Fork this repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ---
 
-## 🙏 致谢
+## 📝 License
 
-感谢以下项目和资源：
-
-- [Visual Studio Code](https://code.visualstudio.com/) - 优秀的代码编辑器
-- [HLSL Tools for Visual Studio](https://github.com/tgjones/HlslTools) - HLSL 语言支持参考
-- [Unity Documentation](https://docs.unity3d.com/) - Unity Shader 文档
-- [Unreal Engine Documentation](https://docs.unrealengine.com/) - Unreal Shader 文档
+This project is licensed under the MIT License - see [LICENSE.md](LICENSE.md) for details.
 
 ---
 
-## 📮 联系方式
+## 🙏 Acknowledgments
 
-- **问题反馈**: [GitHub Issues](https://github.com/yyqrc/vscode-unityshader/issues)
-- **功能建议**: [GitHub Discussions](https://github.com/yyqrc/vscode-unityshader/discussions)
+Thanks to the following projects and resources:
+
+- [Visual Studio Code](https://code.visualstudio.com/) - Excellent code editor
+- [HLSL Tools for Visual Studio](https://github.com/tgjones/HlslTools) - HLSL language support reference
+- [Unity Documentation](https://docs.unity3d.com/) - Unity Shader documentation
+- [Unreal Engine Documentation](https://docs.unrealengine.com/) - Unreal Shader documentation
+
+---
+
+## 📮 Contact
+
+- **Issue Feedback**: [GitHub Issues](https://github.com/yyqrc/vscode-unityshader/issues)
+- **Feature Suggestions**: [GitHub Discussions](https://github.com/yyqrc/vscode-unityshader/discussions)
 
 ---
 
 <div align="center">
 
-**如果这个插件对您有帮助，请给个 ⭐️ Star！**
+**If this plugin is helpful to you, please give it a ⭐️ Star!**
 
 Made with ❤️ for Unity and Unreal Engine developers
 
