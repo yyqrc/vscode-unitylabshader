@@ -1,6 +1,6 @@
 # Unity Shader Language Support
 
-[![Version](https://img.shields.io/badge/Version-1.0.1-blue.svg)](https://marketplace.visualstudio.com/items?itemName=your-publisher.UnityShader)
+[![Version](https://img.shields.io/badge/Version-1.0.8-blue.svg)](https://marketplace.visualstudio.com/items?itemName=your-publisher.UnityShader)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE.md)
 [![VS Code](https://img.shields.io/badge/VS%20Code-1.87.0+-blue.svg)](https://code.visualstudio.com/)
 
@@ -266,7 +266,7 @@ Contributions, bug reports, and suggestions are welcome!
 
 ### Reporting Issues
 
-If you find a bug or have a feature suggestion, please submit it to [GitHub Issues](https://github.com/your-repo/issues).
+If you find a bug or have a feature suggestion, please submit it to [GitHub Issues](https://github.com/yyqrc/vscode-unitylabshader/issues).
 
 ### Contributing Code
 
@@ -297,8 +297,8 @@ Thanks to the following projects and resources:
 
 ## 📮 Contact
 
-- **Issue Feedback**: [GitHub Issues](https://github.com/yyqrc/vscode-unityshader/issues)
-- **Feature Suggestions**: [GitHub Discussions](https://github.com/yyqrc/vscode-unityshader/discussions)
+- **Issue Feedback**: [GitHub Issues](https://github.com/yyqrc/vscode-unitylabshader/issues)
+- **Feature Suggestions**: [GitHub Discussions](https://github.com/yyqrc/vscode-unitylabshader/discussions)
 
 ---
 

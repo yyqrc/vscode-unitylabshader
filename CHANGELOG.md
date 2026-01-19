@@ -4,6 +4,33 @@ All notable changes to the "Unity Shader" extension will be documented in this f
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.0.11] - 2026-01-19
+
+### Added
+- 
+
+### Changed
+- 
+
+### Fixed
+- 
+
+## [1.0.11] - 2026-01-19
+
+### Added
+- 
+
+### Changed
+- Improved definition quick pick panel: Now only shows when more than 10 results are found (previously 3)
+
+### Fixed
+- 
+
+## [1.0.9] - 2026-01-16
+
+### Fixed
+- Fix GitHub Repository
+
 ## [1.0.8] - 2026-01-16
 
 ### Added

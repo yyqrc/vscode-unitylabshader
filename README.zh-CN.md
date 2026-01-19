@@ -1,6 +1,6 @@
 # Unity Shader 语言支持
 
-[![版本](https://img.shields.io/badge/版本-1.0.1-blue.svg)](https://marketplace.visualstudio.com/items?itemName=your-publisher.UnityShader)
+[![版本](https://img.shields.io/badge/版本-1.0.8-blue.svg)](https://marketplace.visualstudio.com/items?itemName=your-publisher.UnityShader)
 [![许可证](https://img.shields.io/badge/许可证-MIT-green.svg)](LICENSE.md)
 [![VS Code](https://img.shields.io/badge/VS%20Code-1.87.0+-blue.svg)](https://code.visualstudio.com/)
 
@@ -268,7 +268,7 @@ vscode-unitylabshader/
 
 ### 报告问题
 
-如果您发现 bug 或有功能建议，请在 [GitHub Issues](https://github.com/your-repo/issues) 中提交。
+如果您发现 bug 或有功能建议，请在 [GitHub Issues](https://github.com/yyqrc/vscode-unitylabshader/issues) 中提交。
 
 ### 贡献代码
 
@@ -299,8 +299,8 @@ vscode-unitylabshader/
 
 ## 📮 联系方式
 
-- **问题反馈**: [GitHub Issues](https://github.com/yyqrc/vscode-unityshader/issues)
-- **功能建议**: [GitHub Discussions](https://github.com/yyqrc/vscode-unityshader/discussions)
+- **问题反馈**: [GitHub Issues](https://github.com/yyqrc/vscode-unitylabshader/issues)
+- **功能建议**: [GitHub Discussions](https://github.com/yyqrc/vscode-unitylabshader/discussions)
 
 ---
 

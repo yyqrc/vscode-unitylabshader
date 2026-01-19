@@ -926,8 +926,8 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             const wordRange = document.getWordRangeAtPosition(position);
             const result = await this.getDefinitionLocations(document, position);
             
-            // 如果结果超过3个，显示快速选择面板
-            if (result.length > 3 && wordRange) {
+            // 如果结果超过10个，显示快速选择面板
+            if (result.length > 10 && wordRange) {
                 const selected = await this.showQuickPickForDefinitions(result, document.getText(wordRange));
                 if (selected) {
                     resolve(selected);
