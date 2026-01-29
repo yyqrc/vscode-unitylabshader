@@ -16,6 +16,7 @@ import {
     complexityThresholds,
     mobileOptimizationTips,
 } from './mobileGlobals';
+import { maskCommentsPreserveLayout } from '../utils/commentMask';
 
 /**
  * 诊断来源标识
@@ -99,7 +100,8 @@ export class MobileAnalyzer implements vscode.Disposable {
         }
 
         const diagnostics: vscode.Diagnostic[] = [];
-        const text = document.getText();
+        // 屏蔽注释，避免注释里的代码触发移动端分析提示
+        const text = maskCommentsPreserveLayout(document.getText());
 
         // 1. 检测不支持的特性
         if (this.config.checkUnsupportedFeatures) {

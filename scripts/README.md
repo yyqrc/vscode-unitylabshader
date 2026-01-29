@@ -9,13 +9,19 @@
 
 **用法：**
 ```bash
-node scripts/bump-version.js [patch|minor|major]
+node scripts/bump-version.js [patch|minor|major] [options]
 ```
 
 **参数：**
 - `patch`（默认）：增加修订版本号（0.1.0 → 0.1.1）
 - `minor`：增加次版本号（0.1.0 → 0.2.0）
 - `major`：增加主版本号（0.1.0 → 1.0.0）
+
+**options（可选）：**
+- `--added <text>`：写入到 `### Added`（可重复）
+- `--changed <text>`：写入到 `### Changed`（可重复）
+- `--fixed <text>`：写入到 `### Fixed`（可重复）
+- `--notes-file <path>`：读取文件内容，按行拆分后追加到 `### Changed`
 
 **功能：**
 - 自动更新 package.json 中的版本号
@@ -27,7 +33,7 @@ node scripts/bump-version.js [patch|minor|major]
 
 **用法：**
 ```bash
-node scripts/build-and-package.js [patch|minor|major]
+node scripts/build-and-package.js [patch|minor|major] [options]
 ```
 
 **流程：**
@@ -62,6 +68,11 @@ npm run version:bump [patch|minor|major]
 ```bash
 npm run build
 # 版本：0.1.0 → 0.1.1
+```
+
+### 打包时同时填入 CHANGELOG
+```bash
+npm run build -- --changed "修复：注释中不再触发跳转/悬停/分析" --fixed "符号缓存漏解析部分函数"
 ```
 
 ### 新功能发布

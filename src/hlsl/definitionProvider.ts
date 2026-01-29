@@ -5,6 +5,8 @@ import { getRgPath } from '../common';
 import { EngineContextManager, EngineType } from '../common/engineContext';
 import { SymbolCacheManager, CachedSymbol } from '../cache';
 import { RipgrepUtils, SymbolLookupUtils } from '../utils/CommonUtils';
+import { isInCommentOrString } from '../utils/documentRegions';
+import { maskCommentsPreserveLayout } from '../utils/commentMask';
 
 // 缓存条目接口
 interface CacheEntry {
@@ -379,6 +381,12 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
                 return;
             }
 
+            // 注释/字符串中不提供跳转定义
+            if (isInCommentOrString(document, position)) {
+                reject();
+                return;
+            }
+
             let wordRange = document.getWordRangeAtPosition(position);
             if (!wordRange) {
                 reject();
@@ -403,11 +411,38 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
                 resolve(cached.results);
                 return;
             }
-            
-			// 策略0.5: 检查持久化缓存
-			if (this.symbolCacheManager) {
-				const persistentStartTime = Date.now();
-				const persistentResults = this.searchSymbolFromPersistentCache(name);
+
+            // 优先：当前文件内的局部变量定义（避免同名变量导致返回大量跨文件结果）
+            const localVarLocation = this.tryFindLocalVariableDefinition(document, position, wordRange, name);
+            if (localVarLocation) {
+                const localResults = [localVarLocation];
+                this.definitionCache.set(cacheKey, {
+                    results: localResults,
+                    timestamp: Date.now()
+                });
+                this.devLog(`[Local] ✓ Found local definition (param/var) for "${name}"`);
+                this.devLog(`[Performance] ========== Total time: ${Date.now() - startTime}ms (local), Found: ${localResults.length} ==========`);
+                resolve(localResults);
+                return;
+            }
+
+            // 优先：结构体成员访问时，跳转到结构体类型定义（例如 IN.basecolor -> UnityMetaInput）
+            const memberTypeLocations = await this.tryFindStructMemberTypeDefinitions(document, position, wordRange);
+            if (memberTypeLocations && memberTypeLocations.length > 0) {
+                this.definitionCache.set(cacheKey, {
+                    results: memberTypeLocations,
+                    timestamp: Date.now()
+                });
+                this.devLog(`[Type] ✓ Found member base type definition for "${name}"`);
+                this.devLog(`[Performance] ========== Total time: ${Date.now() - startTime}ms (type), Found: ${memberTypeLocations.length} ==========`);
+                resolve(memberTypeLocations);
+                return;
+            }
+              
+ 			// 策略0.5: 检查持久化缓存
+ 			if (this.symbolCacheManager) {
+ 				const persistentStartTime = Date.now();
+ 				const persistentResults = this.searchSymbolFromPersistentCache(name);
 				
 				if (persistentResults.length > 0) {
 					this.devLog(`[PersistentCache] ✓ Hit! Returning ${persistentResults.length} results (time: ${Date.now() - persistentStartTime}ms)`);
@@ -577,6 +612,445 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
 
             resolve(sortedResults);
         });
+    }
+
+    private tryFindLocalVariableDefinition(
+        document: TextDocument,
+        position: Position,
+        wordRange: Range,
+        name: string
+    ): Location | null {
+        const lineText = document.lineAt(position.line).text;
+        const afterWord = lineText.substring(wordRange.end.character);
+
+        // 函数调用不走局部变量逻辑
+        if (afterWord.trimStart().startsWith('(')) {
+            return null;
+        }
+
+        // 预处理宏（常见为全大写）不走局部变量逻辑
+        if (name.length > 2 && name === name.toUpperCase()) {
+            return null;
+        }
+
+        // 成员访问（foo.bar）优先走结构体类型跳转，不走“同名变量声明”回退逻辑
+        if (this.isMemberAccessName(document, wordRange)) {
+            return null;
+        }
+
+        // 0) 优先：函数参数（如 float4 vertex）
+        const paramInfo = this.findParameterInfoInEnclosingFunction(document, position, name);
+        if (paramInfo) {
+            return paramInfo.location;
+        }
+
+        // 1) 优先使用符号缓存中的“当前文件符号”做局部判定（最快）
+        const cached = this.findLocalVariableFromFileCache(document, position, name);
+        if (cached) {
+            return cached;
+        }
+
+        // 2) 回退：在当前文档内用轻量正则查找局部变量声明
+        return this.findLocalVariableFromDocumentText(document, position, name);
+    }
+
+    private findLocalVariableFromFileCache(document: TextDocument, position: Position, name: string): Location | null {
+        if (!this.symbolCacheManager) {
+            return null;
+        }
+
+        const fileSymbols = this.symbolCacheManager.getFileSymbols(document.uri.fsPath);
+        if (!fileSymbols || fileSymbols.length === 0) {
+            return null;
+        }
+
+        const functionSymbols = fileSymbols.filter(s => s.kind === CachedSymbolKind.Function);
+        const enclosingFunction = functionSymbols.find(f => f.line <= position.line && position.line <= f.endLine);
+
+        const candidates = fileSymbols
+            .filter(s => s.kind === CachedSymbolKind.Variable && s.name === name && s.line <= position.line)
+            .filter(s => {
+                if (enclosingFunction) {
+                    return s.line >= enclosingFunction.line && s.line <= enclosingFunction.endLine;
+                }
+                // 不在函数内：尽量避免选到其他函数体内的同名局部变量
+                return !functionSymbols.some(f => s.line >= f.line && s.line <= f.endLine);
+            })
+            .sort((a, b) => b.line - a.line || b.column - a.column);
+
+        if (candidates.length === 0) {
+            return null;
+        }
+
+        const best = candidates[0];
+        const declLineText = document.lineAt(best.line).text;
+        const nameColumn = declLineText.indexOf(name);
+        const col = nameColumn >= 0 ? nameColumn : best.column;
+
+        return new Location(
+            document.uri,
+            new Range(new Position(best.line, col), new Position(best.line, col + name.length))
+        );
+    }
+
+    private findLocalVariableFromDocumentText(document: TextDocument, position: Position, name: string): Location | null {
+        const text = maskCommentsPreserveLayout(document.getText());
+        const cursorOffset = document.offsetAt(position);
+
+        const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const declRegex = new RegExp(
+            `^[ \\t]*(?:\\w+[ \\t]+)+(${escapedName})\\b\\s*(?:\\[[^\\]]*\\]\\s*)?(?:=|;|,)`,
+            'gm'
+        );
+
+        const skipFirstTokens = new Set([
+            'if', 'for', 'while', 'switch', 'case', 'default', 'return',
+            'break', 'continue', 'discard', 'else'
+        ]);
+
+        let bestNameOffset = -1;
+        let match: RegExpExecArray | null;
+        while ((match = declRegex.exec(text)) !== null) {
+            const matchText = match[0];
+            const firstToken = matchText.trimStart().split(/\s+/)[0]?.toLowerCase() || '';
+            if (skipFirstTokens.has(firstToken)) {
+                continue;
+            }
+
+            const nameOffset = match.index + matchText.indexOf(match[1]);
+            if (nameOffset < 0 || nameOffset > cursorOffset) {
+                continue;
+            }
+
+            if (nameOffset > bestNameOffset) {
+                bestNameOffset = nameOffset;
+            }
+        }
+
+        if (bestNameOffset === -1) {
+            return null;
+        }
+
+        const startPos = document.positionAt(bestNameOffset);
+        const endPos = new Position(startPos.line, startPos.character + name.length);
+        return new Location(document.uri, new Range(startPos, endPos));
+    }
+
+    private isMemberAccessName(document: TextDocument, wordRange: Range): boolean {
+        const lineText = document.lineAt(wordRange.start.line).text;
+        let i = wordRange.start.character - 1;
+        while (i >= 0 && /\s/.test(lineText[i])) {
+            i--;
+        }
+        if (i < 0) {
+            return false;
+        }
+        if (lineText[i] === '.') {
+            return true;
+        }
+        if (lineText[i] === '>' && i - 1 >= 0 && lineText[i - 1] === '-') {
+            return true;
+        }
+        return false;
+    }
+
+    private async tryFindStructMemberTypeDefinitions(document: TextDocument, position: Position, wordRange: Range): Promise<Location[] | null> {
+        const baseIdentifier = this.getMemberAccessBaseIdentifier(document, wordRange);
+        if (!baseIdentifier) {
+            return null;
+        }
+
+        const baseType = this.resolveIdentifierType(document, position, baseIdentifier);
+        if (!baseType || this.isBuiltInType(baseType)) {
+            return null;
+        }
+
+        this.devLog(`[Type] Member access: base="${baseIdentifier}", type="${baseType}"`);
+
+        // 优先走持久化缓存（类型定义）
+        const cachedType = this.searchTypeDefinitionFromPersistentCache(baseType);
+        if (cachedType.length > 0) {
+            return cachedType;
+        }
+
+        // 回退：用 ripgrep 搜索结构体定义
+        if (workspace.workspaceFolders) {
+            // 只要一个工作区命中就返回，避免全局扫一遍
+            // 结构体定义较少，查找代价可控
+            for (const folder of workspace.workspaceFolders) {
+                const rootPath = folder.uri.fsPath;
+                const results = await this.searchStructDefinitions(baseType, rootPath);
+                if (results.length > 0) {
+                    return results;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private getMemberAccessBaseIdentifier(document: TextDocument, wordRange: Range): string | null {
+        const lineText = document.lineAt(wordRange.start.line).text;
+
+        let i = wordRange.start.character - 1;
+        while (i >= 0 && /\s/.test(lineText[i])) {
+            i--;
+        }
+        if (i < 0) {
+            return null;
+        }
+
+        // foo.bar 或 foo -> bar
+        if (lineText[i] === '.') {
+            i--;
+        } else if (lineText[i] === '>' && i - 1 >= 0 && lineText[i - 1] === '-') {
+            i -= 2;
+        } else {
+            return null;
+        }
+
+        while (i >= 0 && /\s/.test(lineText[i])) {
+            i--;
+        }
+        if (i < 0) {
+            return null;
+        }
+
+        let end = i + 1;
+        while (i >= 0 && /[A-Za-z0-9_]/.test(lineText[i])) {
+            i--;
+        }
+        const start = i + 1;
+        const base = lineText.substring(start, end).trim();
+        return base.length > 0 ? base : null;
+    }
+
+    private resolveIdentifierType(document: TextDocument, position: Position, identifier: string): string | null {
+        // 1) 参数类型
+        const paramInfo = this.findParameterInfoInEnclosingFunction(document, position, identifier);
+        if (paramInfo && paramInfo.type) {
+            return paramInfo.type;
+        }
+
+        // 2) 当前文件变量声明（缓存）
+        if (this.symbolCacheManager) {
+            const fileSymbols = this.symbolCacheManager.getFileSymbols(document.uri.fsPath);
+            if (fileSymbols && fileSymbols.length > 0) {
+                const functionSymbols = fileSymbols.filter(s => s.kind === CachedSymbolKind.Function);
+                const enclosingFunction = this.findEnclosingFunctionSymbol(functionSymbols, position.line);
+
+                const candidates = fileSymbols
+                    .filter(s => s.kind === CachedSymbolKind.Variable && s.name === identifier && s.line <= position.line)
+                    .filter(s => {
+                        if (enclosingFunction) {
+                            return s.line >= enclosingFunction.line && s.line <= enclosingFunction.endLine;
+                        }
+                        return !functionSymbols.some(f => s.line >= f.line && s.line <= f.endLine);
+                    })
+                    .sort((a, b) => b.line - a.line || b.column - a.column);
+
+                if (candidates.length > 0) {
+                    const best = candidates[0];
+                    if (best.signature) {
+                        const parts = best.signature.trim().split(/\s+/);
+                        if (parts.length >= 2) {
+                            return parts[0];
+                        }
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private isBuiltInType(typeName: string): boolean {
+        const t = typeName.trim();
+        if (t === '') {
+            return true;
+        }
+
+        const lowered = t.toLowerCase();
+        if (['void', 'bool', 'int', 'uint', 'half', 'float', 'double', 'fixed'].includes(lowered)) {
+            return true;
+        }
+
+        // float2/half4/float4x4 等
+        if (/^(bool|int|uint|half|float|double|fixed)\d+(x\d+)?$/i.test(t)) {
+            return true;
+        }
+
+        // 常见资源类型
+        if (/^(sampler|samplerstate|samplercomparisonstate)/i.test(t)) {
+            return true;
+        }
+        if (/^(texture|rwtexture|buffer|rwbuffer|structuredbuffer|rwstructuredbuffer|byteaddressbuffer|rwbyteaddressbuffer)/i.test(t)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private searchTypeDefinitionFromPersistentCache(typeName: string): Location[] {
+        if (!this.symbolCacheManager) {
+            return [];
+        }
+
+        const symbols = this.symbolCacheManager.findSymbol(typeName);
+        if (symbols.length === 0) {
+            return [];
+        }
+
+        const typeSymbols = symbols.filter(s =>
+            s.kind === CachedSymbolKind.Struct ||
+            s.kind === CachedSymbolKind.Class ||
+            s.kind === CachedSymbolKind.Typedef ||
+            s.kind === CachedSymbolKind.Interface
+        );
+
+        const results: Location[] = [];
+        for (const symbol of typeSymbols) {
+            try {
+                const uri = Uri.file(this.getAbsolutePath(symbol.filePath));
+                const range = new Range(
+                    new Position(symbol.line, symbol.column),
+                    new Position(symbol.endLine, symbol.endColumn)
+                );
+                results.push(new Location(uri, range));
+            } catch (error) {
+                this.devLog(`[PersistentCache] Error converting type symbol: ${error}`);
+            }
+        }
+
+        return results;
+    }
+
+    private findEnclosingFunctionSymbol(functionSymbols: CachedSymbol[], line: number): CachedSymbol | null {
+        const candidates = functionSymbols
+            .filter(f => f.line <= line && line <= f.endLine)
+            .sort((a, b) => b.line - a.line);
+        return candidates.length > 0 ? candidates[0] : null;
+    }
+
+    private findParameterInfoInEnclosingFunction(
+        document: TextDocument,
+        position: Position,
+        paramName: string
+    ): { type: string | null; location: Location } | null {
+        const escaped = paramName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+        // 1) 优先从缓存定位“包裹当前行”的函数
+        let functionStartLine: number | null = null;
+        let functionName: string | null = null;
+
+        if (this.symbolCacheManager) {
+            const fileSymbols = this.symbolCacheManager.getFileSymbols(document.uri.fsPath);
+            if (fileSymbols && fileSymbols.length > 0) {
+                const functionSymbols = fileSymbols.filter(s => s.kind === CachedSymbolKind.Function);
+                const enclosingFunction = this.findEnclosingFunctionSymbol(functionSymbols, position.line);
+                if (enclosingFunction) {
+                    functionStartLine = enclosingFunction.line;
+                    functionName = enclosingFunction.name;
+                }
+            }
+        }
+
+        // 2) 回退：向上找一个看起来像函数签名的行
+        if (functionStartLine === null) {
+            functionStartLine = this.findLikelyFunctionStartLine(document, position.line);
+        }
+
+        if (functionStartLine === null) {
+            return null;
+        }
+
+        const maxEndLine = Math.min(document.lineCount - 1, functionStartLine + 50);
+        const headerRange = new Range(
+            new Position(functionStartLine, 0),
+            new Position(maxEndLine, document.lineAt(maxEndLine).text.length)
+        );
+
+        const headerText = maskCommentsPreserveLayout(document.getText(headerRange));
+
+        const nameIndex = functionName ? headerText.search(new RegExp(`\\b${functionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`)) : -1;
+        const openIndex = headerText.indexOf('(', nameIndex >= 0 ? nameIndex : 0);
+        if (openIndex === -1) {
+            return null;
+        }
+
+        // 找到匹配的 ')'
+        let depth = 0;
+        let closeIndex = -1;
+        for (let i = openIndex; i < headerText.length; i++) {
+            const ch = headerText[i];
+            if (ch === '(') {
+                depth++;
+            } else if (ch === ')') {
+                depth--;
+                if (depth === 0) {
+                    closeIndex = i;
+                    break;
+                }
+            }
+        }
+        if (closeIndex === -1) {
+            return null;
+        }
+
+        const paramList = headerText.slice(openIndex + 1, closeIndex);
+        const paramMatch = new RegExp(`\\b${escaped}\\b`).exec(paramList);
+        if (!paramMatch || paramMatch.index === undefined) {
+            return null;
+        }
+
+        const headerStartOffset = document.offsetAt(new Position(functionStartLine, 0));
+        const absoluteNameOffset = headerStartOffset + (openIndex + 1 + paramMatch.index);
+
+        const startPos = document.positionAt(absoluteNameOffset);
+        const endPos = new Position(startPos.line, startPos.character + paramName.length);
+        const location = new Location(document.uri, new Range(startPos, endPos));
+
+        // 尝试解析参数类型（用于结构体成员类型跳转）
+        const segmentStart = Math.max(0, paramList.lastIndexOf(',', paramMatch.index) + 1);
+        const segmentEnd = (() => {
+            const nextComma = paramList.indexOf(',', paramMatch.index);
+            return nextComma === -1 ? paramList.length : nextComma;
+        })();
+        const paramSegment = paramList.slice(segmentStart, segmentEnd).replace(/\s+/g, ' ').trim();
+
+        const qualifierRegex = /^(?:inout|in|out|const|static|uniform|volatile|precise|row_major|column_major)\s+/i;
+        let cleaned = paramSegment;
+        while (qualifierRegex.test(cleaned)) {
+            cleaned = cleaned.replace(qualifierRegex, '').trim();
+        }
+
+        const typeMatch = new RegExp(`^([A-Za-z_][A-Za-z0-9_]*(?:\\s*<[^>]+>)?)\\s+${escaped}\\b`).exec(cleaned);
+        const type = typeMatch ? typeMatch[1].trim() : null;
+
+        return { type, location };
+    }
+
+    private findLikelyFunctionStartLine(document: TextDocument, fromLine: number): number | null {
+        const maxLookback = 200;
+        const stopLine = Math.max(0, fromLine - maxLookback);
+        const skip = new Set(['if', 'for', 'while', 'switch', 'return', 'else']);
+
+        for (let line = fromLine; line >= stopLine; line--) {
+            const text = document.lineAt(line).text.trim();
+            if (!text) {
+                continue;
+            }
+            const first = text.split(/\s+/)[0]?.toLowerCase() || '';
+            if (skip.has(first)) {
+                continue;
+            }
+            if (/\b\w+\b\s*\(/.test(text) && !/;\s*$/.test(text)) {
+                // 简单启发：像 "retType funcName(" 或 "funcName(" 的行
+                return line;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -876,6 +1350,11 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             // 1. 检查是否在 #include 行上
             const includeMatch = /#include\s+["<]([^">]+)[">]/.exec(lineText);
             if (includeMatch) {
+                // 兼容：include 路径在字符串中，但仍应允许跳转；仅在被注释掉的 #include 中跳过
+                const includeTokenPos = new Position(position.line, includeMatch.index ?? 0);
+                if (isInCommentOrString(document, includeTokenPos)) {
+                    // 被注释掉的 include，不处理
+                } else {
                 const includePath = includeMatch[1];
                 const includeStart = lineText.indexOf(includePath);
                 const includeEnd = includeStart + includePath.length;
@@ -891,6 +1370,7 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
                         }
                     }
                 }
+                }
             }
             
             // 2. 检查是否在 FallBack 行上（不区分大小写）
@@ -901,6 +1381,11 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             if (isUnityMode) {
                 const fallbackMatch = /FallBack\s+"([^"]+)"/i.exec(lineText);
                 if (fallbackMatch) {
+                    // FallBack 的 Shader 名称在字符串中，但仍应允许跳转；仅在被注释掉的 FallBack 中跳过
+                    const fallbackTokenPos = new Position(position.line, fallbackMatch.index ?? 0);
+                    if (isInCommentOrString(document, fallbackTokenPos)) {
+                        // 被注释掉的 FallBack，不处理
+                    } else {
                     const shaderName = fallbackMatch[1];
                     const shaderStart = lineText.indexOf(shaderName);
                     const shaderEnd = shaderStart + shaderName.length;
@@ -919,15 +1404,23 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
                         reject();
                         return;
                     }
+                    }
                 }
             }
-            
+
+            // VS Code 在注释/字符串中也会触发 DefinitionProvider；这里主动短路，避免注释里也能跳转定义
+            // 注意：#include/FallBack 属于字符串路径跳转，已在上方单独处理
+            if (isInCommentOrString(document, position)) {
+                reject();
+                return;
+            }
+             
             // 3. 默认行为：查找符号定义
             const wordRange = document.getWordRangeAtPosition(position);
             const result = await this.getDefinitionLocations(document, position);
             
-            // 如果结果超过10个，显示快速选择面板
-            if (result.length > 10 && wordRange) {
+            // 如果结果超过20个，显示快速选择面板
+            if (result.length > 20 && wordRange) {
                 const selected = await this.showQuickPickForDefinitions(result, document.getText(wordRange));
                 if (selected) {
                     resolve(selected);

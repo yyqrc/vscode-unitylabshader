@@ -23,6 +23,7 @@ import {
     URPFunction,
     URPMacro
 } from '../unity/urpGlobals';
+import { isInCommentOrString } from '../utils/documentRegions';
 
 // 构建查找表以提高性能
 const unityVariableMap = new Map<string, UnityVariable>();
@@ -81,6 +82,11 @@ export default class HLSLHoverProvider implements HoverProvider {
     }
 
     public async provideHover(document: TextDocument, position: Position, token: CancellationToken): Promise<Hover | null | undefined> {
+
+        // 注释/字符串中不提供悬停提示，避免注释里的宏/关键字也触发提示
+        if (isInCommentOrString(document, position)) {
+            return null;
+        }
         
         let enableBasic = workspace.getConfiguration('unityshader').get<boolean>('suggest.basic', true);
         let enableUnity = workspace.getConfiguration('unityshader').get<boolean>('suggest.unity', true);

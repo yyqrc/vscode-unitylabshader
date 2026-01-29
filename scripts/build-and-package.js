@@ -1,18 +1,38 @@
 #!/usr/bin/env node
 
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-// 获取版本类型参数，默认为 patch
-const versionType = process.argv[2] || 'patch';
+function printUsage() {
+  console.log(`
+用法:
+  node scripts/build-and-package.js [patch|minor|major] [options]
+
+options 会透传给 bump-version.js（例如 --changed/--fixed/--notes-file）。
+
+示例:
+  npm run build -- --changed "修复：注释中不再触发悬停/分析"
+`);
+}
+
+// 解析参数：允许直接 `node scripts/build-and-package.js --help`
+const rawArgs = process.argv.slice(2);
+const knownVersionTypes = new Set(['patch', 'minor', 'major']);
+const versionType = rawArgs.length > 0 && knownVersionTypes.has(rawArgs[0]) ? rawArgs[0] : 'patch';
+const bumpExtraArgs = rawArgs.length > 0 && knownVersionTypes.has(rawArgs[0]) ? rawArgs.slice(1) : rawArgs;
+
+if (bumpExtraArgs.includes('-h') || bumpExtraArgs.includes('--help')) {
+  printUsage();
+  process.exit(0);
+}
 
 console.log(`\n🚀 Starting build and package process...\n`);
 
 try {
   // 1. 增加版本号
   console.log('📝 Step 1: Bumping version...');
-  execSync(`node ${path.join(__dirname, 'bump-version.js')} ${versionType}`, { stdio: 'inherit' });
+  execFileSync('node', [path.join(__dirname, 'bump-version.js'), versionType, ...bumpExtraArgs], { stdio: 'inherit' });
 
   // 读取新版本号
   const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));

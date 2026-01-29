@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { RegexCache } from '../utils/RegexCache';
+import { maskCommentsPreserveLayout } from '../utils/commentMask';
 
 /**
  * 变量信息接口
@@ -59,7 +60,8 @@ export class SemanticAnalyzer {
         this.variables.clear();
         this.functions.clear();
 
-        const text = document.getText();
+        // 屏蔽注释，避免注释里的“伪代码”影响类型推断/未使用变量检测
+        const text = maskCommentsPreserveLayout(document.getText());
         const lines = text.split('\n');
 
         // 第一遍：收集所有变量和函数定义

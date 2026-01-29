@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { maskCommentsPreserveLayout } from '../utils/commentMask';
 
 /**
  * 变体关键字信息
@@ -54,8 +55,10 @@ export class VariantAnalyzer {
      * 分析文档中的变体
      */
     public analyzeDocument(document: vscode.TextDocument, editor?: vscode.TextEditor): VariantAnalysisResult {
-        const text = document.getText();
-        const lines = text.split('\n');
+        const rawText = document.getText();
+        const analysisText = maskCommentsPreserveLayout(rawText);
+        const rawLines = rawText.split('\n');
+        const lines = analysisText.split('\n');
         
         const keywords: VariantKeyword[] = [];
         const diagnostics: vscode.Diagnostic[] = [];
@@ -115,7 +118,7 @@ export class VariantAnalyzer {
         // 为每个 pragma 行添加装饰和诊断
         for (const keyword of keywords) {
             const line = keyword.line;
-            const lineText = lines[line];
+            const lineText = rawLines[line];
             const optionCount = keyword.options.length;
 
             // 添加装饰（显示变体数量）

@@ -15,7 +15,8 @@ interface Position {
  */
 export class SymbolParser {
     // 函数定义正则表达式（支持跨行参数，避免匹配换行符）
-    private static readonly FUNCTION_REGEX = /[ \t]*(?:inline[ \t]+)?(?:static[ \t]+)?(?:const[ \t]+)?(\w+(?:[ \t]*<[^>]+>)?)[ \t]+(\w+)[ \t]*\(([\s\S]*?)\)[ \t]*(?::[ \t]*\w+[ \t]*)?(?:\{|;)/gm;
+    // 说明：允许 ")" 与 "{" 之间换行（Unity cginc 常见风格），并允许返回类型前出现多个修饰词/宏（如 static/inline/UNITY_FORCE_INLINE 等）
+    private static readonly FUNCTION_REGEX = /^[ \t]*((?:\w+(?:\s*<[^>]+>)?(?:\s*[*&])?[ \t]+)+?)(\w+)[ \t]*\(([\s\S]*?)\)\s*(?::\s*\w+\s*)?(?:\{|;)/gm;
     
     // 宏定义正则表达式
     private static readonly MACRO_REGEX = /^\s*#define\s+(\w+)(?:\s*\(([^)]*)\))?\s*(.*?)(?:\\\s*$)?/gm;
@@ -40,32 +41,130 @@ export class SymbolParser {
      */
     static parseFile(filePath: string, content: string): CachedSymbol[] {
         const symbols: CachedSymbol[] = [];
-        const lines = content.split('\n');
+        // 屏蔽注释（保留换行与字符长度），避免注释里的代码被当作符号；同时避免注释中的 { } 影响函数/块结束定位
+        const parsingContent = this.maskCommentsPreserveLayout(content);
+        const lines = parsingContent.split('\n');
 
         // 解析函数
-        symbols.push(...this.parseFunctions(content, lines, filePath));
+        symbols.push(...this.parseFunctions(parsingContent, lines, filePath));
 
         // 解析宏定义
-        symbols.push(...this.parseMacros(content, lines, filePath));
+        symbols.push(...this.parseMacros(parsingContent, lines, filePath));
 
         // 解析结构体
-        symbols.push(...this.parseStructs(content, lines, filePath));
+        symbols.push(...this.parseStructs(parsingContent, lines, filePath));
 
         // 解析类
-        symbols.push(...this.parseClasses(content, lines, filePath));
+        symbols.push(...this.parseClasses(parsingContent, lines, filePath));
 
         // 解析全局变量
-        symbols.push(...this.parseVariables(content, lines, filePath));
+        symbols.push(...this.parseVariables(parsingContent, lines, filePath));
 
         // 解析 typedef
-        symbols.push(...this.parseTypedefs(content, lines, filePath));
+        symbols.push(...this.parseTypedefs(parsingContent, lines, filePath));
 
         // 解析 Unity Shader 定义（仅 .shader 文件）
         if (filePath.endsWith('.shader')) {
-            symbols.push(...this.parseShaders(content, lines, filePath));
+            symbols.push(...this.parseShaders(parsingContent, lines, filePath));
         }
 
         return symbols;
+    }
+
+    private static maskCommentsPreserveLayout(content: string): string {
+        const chars = content.split('');
+
+        let inLineComment = false;
+        let inBlockComment = false;
+        let inSingleQuote = false;
+        let inDoubleQuote = false;
+        let escaped = false;
+
+        for (let i = 0; i < chars.length; i++) {
+            const ch = content[i];
+            const next = i + 1 < content.length ? content[i + 1] : '';
+
+            if (inLineComment) {
+                if (ch === '\n') {
+                    inLineComment = false;
+                    continue;
+                }
+                if (ch !== '\r') {
+                    chars[i] = ' ';
+                }
+                continue;
+            }
+
+            if (inBlockComment) {
+                if (ch === '*' && next === '/') {
+                    chars[i] = ' ';
+                    chars[i + 1] = ' ';
+                    inBlockComment = false;
+                    i++;
+                    continue;
+                }
+                if (ch !== '\n' && ch !== '\r') {
+                    chars[i] = ' ';
+                }
+                continue;
+            }
+
+            if (inSingleQuote) {
+                if (escaped) {
+                    escaped = false;
+                    continue;
+                }
+                if (ch === '\\') {
+                    escaped = true;
+                    continue;
+                }
+                if (ch === '\'') {
+                    inSingleQuote = false;
+                }
+                continue;
+            }
+
+            if (inDoubleQuote) {
+                if (escaped) {
+                    escaped = false;
+                    continue;
+                }
+                if (ch === '\\') {
+                    escaped = true;
+                    continue;
+                }
+                if (ch === '"') {
+                    inDoubleQuote = false;
+                }
+                continue;
+            }
+
+            // normal state
+            if (ch === '/' && next === '/') {
+                chars[i] = ' ';
+                chars[i + 1] = ' ';
+                inLineComment = true;
+                i++;
+                continue;
+            }
+            if (ch === '/' && next === '*') {
+                chars[i] = ' ';
+                chars[i + 1] = ' ';
+                inBlockComment = true;
+                i++;
+                continue;
+            }
+            if (ch === '\'') {
+                inSingleQuote = true;
+                continue;
+            }
+            if (ch === '"') {
+                inDoubleQuote = true;
+                continue;
+            }
+        }
+
+        return chars.join('');
     }
 
     /**
