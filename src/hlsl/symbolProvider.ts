@@ -110,6 +110,11 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
             }),
             workspace.onDidCreateFiles(() => {
                 this.invalidateCache();
+            }),
+            workspace.onDidChangeConfiguration(e => {
+                if (e.affectsConfiguration('unityshader.files.useGitignore')) {
+                    this.invalidateCache();
+                }
             })
         );
     }

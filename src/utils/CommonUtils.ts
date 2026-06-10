@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 import { execSync } from 'child_process';
 import { join } from 'path';
 import { PathUtils } from './RegexCache';
+import { WorkspaceIgnore } from './WorkspaceIgnore';
 
 /**
  * Ripgrep 搜索选项
@@ -110,7 +111,7 @@ export class RipgrepUtils {
             const lines = output.split('\n').filter(line => line.trim());
             for (const line of lines) {
                 const match = this.parseRipgrepLine(line, options.rootPath);
-                if (match) {
+                if (match && !WorkspaceIgnore.isIgnored(options.rootPath, match.filePath)) {
                     results.push(match);
                 }
             }
@@ -120,7 +121,7 @@ export class RipgrepUtils {
                 const lines = error.stdout.toString().split('\n').filter((l: string) => l.trim());
                 for (const line of lines) {
                     const match = this.parseRipgrepLine(line, options.rootPath);
-                    if (match) {
+                    if (match && !WorkspaceIgnore.isIgnored(options.rootPath, match.filePath)) {
                         results.push(match);
                     }
                 }
@@ -316,7 +317,10 @@ export class RipgrepUtils {
                 encoding: 'utf8'
             });
             
-            return output.toString().split('\n').filter(f => f.trim());
+            return output.toString()
+                .split('\n')
+                .filter(f => f.trim())
+                .filter(f => !WorkspaceIgnore.isIgnored(rootPath, f));
         } catch (error: any) {
             // 没有找到文件时返回空数组
             if (error.status === 1) {
@@ -375,6 +379,10 @@ export class RipgrepUtils {
                 const filepath = join(rootPath, relativePath);
                 const lineNum = parseInt(lineNumStr) - 1;
                 
+                if (WorkspaceIgnore.isIgnored(rootPath, filepath)) {
+                    continue;
+                }
+
                 matches.push({
                     filePath: filepath,
                     line: lineNum,

@@ -2,7 +2,7 @@
   "name": "UnityShader",
   "displayName": "Unity Shader",
   "description": "Unity and Unreal Shader language support for VS Code - syntax highlighting, code completion, hover tips and more for .shader, .cginc, .hlsl, .compute, .usf, .ush files",
-  "version": "1.0.13",
+  "version": "1.1.2",
   "publisher": "ashiqi",
   "author": {
     "name": "阿十七 & CodeBuddy"
@@ -130,6 +130,11 @@
           "default": 512,
           "description": "Maximum number of shader variants before showing an error."
         },
+        "unityshader.files.useGitignore": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use .gitignore rules to exclude files from workspace symbol, definition, reference and include search. | 使用 .gitignore 规则从工作区符号、跳转定义、引用查找和 include 搜索中排除文件。"
+        },
         "unityshader.mobile.enabled": {
           "type": "boolean",
           "default": false,
@@ -180,7 +185,7 @@
       },
       {
         "command": "unityshader.buildSymbolCache",
-        "title": "Unity Shader: Build Symbol Cache"
+        "title": "Unity Shader: Rebuild Symbol Cache"
       },
       {
         "command": "unityshader.clearSymbolCache",

@@ -57,6 +57,10 @@ Thumbs.db
 
 # Additional files to exclude
 .iflow/**
+.codex/**
+AGENTS.md
 console.log
+StdPassMeta copy.cginc
+StdShadow.cginc
 doc/**
 docs/**

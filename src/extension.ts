@@ -7,6 +7,7 @@ import { setHlslExtensions, setRgPath } from './common';
 import { EngineContextManager } from './common/engineContext';
 import { SymbolCacheManager } from './cache';
 import { RipgrepUtils } from './utils/CommonUtils';
+import { WorkspaceIgnore } from './utils/WorkspaceIgnore';
 
 import HLSLHoverProvider from './hlsl/hoverProvider';
 import HLSLCompletionItemProvider from './hlsl/completionProvider';
@@ -236,6 +237,18 @@ export function activate(context: vscode.ExtensionContext) {
     // 监听配置变化，刷新移动端分析器配置
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration(event => {
+            if (event.affectsConfiguration('unityshader.files.useGitignore')) {
+                if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+                    WorkspaceIgnore.reload(vscode.workspace.workspaceFolders[0].uri.fsPath);
+                }
+
+                if (symbolCacheManager) {
+                    symbolCacheManager.rebuildCache().catch(error => {
+                        console.error('Failed to rebuild symbol cache after gitignore setting changed:', error);
+                    });
+                }
+            }
+
             if (event.affectsConfiguration('unityshader.mobile')) {
                 mobileAnalyzer.refreshConfig();
                 // 重新分析当前文档

@@ -6,3 +6,4 @@ node_modules
 .codebuddy
 _test
 docs
+.codex

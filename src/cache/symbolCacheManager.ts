@@ -17,13 +17,14 @@ import {
 import { FileHasher } from './fileHasher';
 import { SymbolParser } from './symbolParser';
 import { FuzzyMatcher } from '../utils/FuzzyMatcher';
+import { WorkspaceIgnore } from '../utils/WorkspaceIgnore';
 
 /**
  * 符号缓存管理器
  * 负责符号的持久化存储、增量更新、跨文件移动检测
  */
 export class SymbolCacheManager {
-    private static readonly CACHE_VERSION = '1.0.0';
+    private static readonly CACHE_VERSION = '1.1.2-gitignore';
     private static readonly CACHE_FILE_NAME = 'symbol-cache.json';
     private static readonly MAX_WORKER_THREADS = 4; // 最大 Worker 线程数
 
@@ -34,6 +35,7 @@ export class SymbolCacheManager {
     
     // 文件监听器
     private fileWatcher: vscode.FileSystemWatcher | null = null;
+    private ignoreFileWatcher: vscode.FileSystemWatcher | null = null;
     
     // 防抖定时器
     private saveDebounceTimer: NodeJS.Timeout | null = null;
@@ -201,6 +203,7 @@ export class SymbolCacheManager {
      */
     private async buildCache(): Promise<void> {
         console.log('Building symbol cache...');
+        WorkspaceIgnore.reload(this.workspacePath);
 
         // 初始化缓存结构
         this.cache = {
@@ -418,7 +421,9 @@ export class SymbolCacheManager {
         );
 
         for (const uri of uris) {
-            files.push(uri.fsPath);
+            if (!this.isIgnored(uri.fsPath)) {
+                files.push(uri.fsPath);
+            }
         }
 
         return files;
@@ -495,6 +500,32 @@ export class SymbolCacheManager {
         this.fileWatcher.onDidDelete((uri) => {
             this.queueFileChange(uri.fsPath, 'deleted');
         });
+
+        this.ignoreFileWatcher = vscode.workspace.createFileSystemWatcher(
+            new vscode.RelativePattern(this.workspacePath, '.gitignore')
+        );
+
+        const handleIgnoreChange = () => {
+            this.handleIgnoreFileChanged().catch(error => {
+                console.error('Failed to rebuild symbol cache after .gitignore change:', error);
+            });
+        };
+
+        this.ignoreFileWatcher.onDidCreate(handleIgnoreChange);
+        this.ignoreFileWatcher.onDidChange(handleIgnoreChange);
+        this.ignoreFileWatcher.onDidDelete(handleIgnoreChange);
+    }
+
+    /**
+     * .gitignore 变化后重建缓存，确保旧缓存条目不会继续参与跳转和符号查询
+     */
+    private async handleIgnoreFileChanged(): Promise<void> {
+        if (!WorkspaceIgnore.isEnabled()) {
+            return;
+        }
+
+        WorkspaceIgnore.reload(this.workspacePath);
+        await this.rebuildCache();
     }
 
     /**
@@ -502,6 +533,15 @@ export class SymbolCacheManager {
      */
     private queueFileChange(filePath: string, type: 'created' | 'modified' | 'deleted'): void {
         const relativePath = this.getRelativePath(filePath);
+
+        if (type !== 'deleted' && this.isIgnored(relativePath)) {
+            this.pendingChanges.set(relativePath, {
+                filePath: relativePath,
+                type: 'deleted',
+                timestamp: Date.now(),
+            });
+            return;
+        }
         
         this.pendingChanges.set(relativePath, {
             filePath: relativePath,
@@ -576,6 +616,11 @@ export class SymbolCacheManager {
         try {
 
             relativePath = this.ensureRelativePath(relativePath);
+
+            if (this.isIgnored(relativePath)) {
+                await this.removeFileCache(relativePath);
+                return;
+            }
 
             const absolutePath = this.getAbsolutePath(relativePath);
             const content = await fs.promises.readFile(absolutePath, 'utf-8');
@@ -693,8 +738,8 @@ export class SymbolCacheManager {
             try {
                 const absolutePath = this.getAbsolutePath(filePath);
                 
-                // 检查文件是否存在
-                if (!fs.existsSync(absolutePath)) {
+                // 检查文件是否存在或已被 .gitignore 隐藏
+                if (!fs.existsSync(absolutePath) || this.isIgnored(filePath)) {
                     invalidFiles.push(filePath);
                     continue;
                 }
@@ -718,6 +763,8 @@ export class SymbolCacheManager {
 
         if (invalidFiles.length > 0) {
             console.log(`Removed ${invalidFiles.length} invalid files from cache`);
+            this.buildSymbolIndex();
+            this.buildSymbolIdentifierMap();
             await this.saveCache();
         }
 
@@ -740,6 +787,9 @@ export class SymbolCacheManager {
         const symbols: CachedSymbol[] = [];
 
         for (const location of locations) {
+            if (this.isIgnored(location.filePath)) {
+                continue;
+            }
             const fileCache = this.cache.files[location.filePath];
             if (fileCache && fileCache.symbols[location.symbolIndex]) {
                 symbols.push(fileCache.symbols[location.symbolIndex]);
@@ -767,6 +817,9 @@ export class SymbolCacheManager {
         for (const [symbolName, locations] of Object.entries(this.cache.symbolIndex)) {
             // 获取该符号名称对应的所有符号
             for (const location of locations) {
+                if (this.isIgnored(location.filePath)) {
+                    continue;
+                }
                 const fileCache = this.cache.files[location.filePath];
                 if (fileCache && fileCache.symbols[location.symbolIndex]) {
                     symbolEntries.push({
@@ -800,6 +853,9 @@ export class SymbolCacheManager {
 
         // 确保路径是相对路径（如果传入绝对路径则转换）
         const relativePath = this.ensureRelativePath(symbol.filePath);
+        if (this.isIgnored(relativePath)) {
+            return;
+        }
         
         // 确保文件缓存存在
         if (!this.cache.files[relativePath]) {
@@ -862,6 +918,9 @@ export class SymbolCacheManager {
         }
 
         const relativePath = this.ensureRelativePath(filePath);
+        if (this.isIgnored(relativePath)) {
+            return [];
+        }
         const fileCache = this.cache.files[relativePath];
 
         return fileCache ? fileCache.symbols : [];
@@ -892,6 +951,13 @@ export class SymbolCacheManager {
         }
         // 已经是相对路径，标准化分隔符
         return filePath.replace(/\\/g, '/');
+    }
+
+    /**
+     * 是否被工作区 .gitignore 忽略
+     */
+    private isIgnored(filePath: string): boolean {
+        return WorkspaceIgnore.isIgnored(this.workspacePath, filePath);
     }
 
     /**
@@ -938,6 +1004,10 @@ export class SymbolCacheManager {
     dispose(): void {
         if (this.fileWatcher) {
             this.fileWatcher.dispose();
+        }
+
+        if (this.ignoreFileWatcher) {
+            this.ignoreFileWatcher.dispose();
         }
 
         if (this.saveDebounceTimer) {

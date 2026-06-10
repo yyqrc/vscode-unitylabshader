@@ -4,6 +4,25 @@ All notable changes to the "Unity Shader" extension will be documented in this f
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.1.2] - 2026-06-10
+
+### Fixed
+- Force rebuild stale symbol caches after the .gitignore-aware cache format change.
+- Rebuild symbol indexes after ignored files are removed during cache validation.
+
+
+## [1.1.1] - 2026-06-10
+
+### Fixed
+- Filter ignored files at the definition-provider result boundary before showing the definition picker.
+
+
+## [1.1.0] - 2026-06-10
+
+### Added
+- Add `unityshader.files.useGitignore` to control whether .gitignore rules hide files from symbol, definition, reference, and include search.
+
+
 ## [1.0.13] - 2026-01-29
 
 ### Added

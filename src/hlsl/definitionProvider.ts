@@ -7,6 +7,7 @@ import { SymbolCacheManager, CachedSymbol } from '../cache';
 import { RipgrepUtils, SymbolLookupUtils } from '../utils/CommonUtils';
 import { isInCommentOrString } from '../utils/documentRegions';
 import { maskCommentsPreserveLayout } from '../utils/commentMask';
+import { WorkspaceIgnore } from '../utils/WorkspaceIgnore';
 
 // 缓存条目接口
 interface CacheEntry {
@@ -224,6 +225,24 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
     }
 
     /**
+     * 在定义跳转结果出口统一过滤 .gitignore 命中的文件。
+     * 兜底覆盖 VS Code WorkspaceSymbolProvider、旧缓存和后续新增搜索路径。
+     */
+    private filterIgnoredLocations(locations: Location[]): Location[] {
+        return locations.filter(location => !this.isIgnoredLocation(location));
+    }
+
+    private isIgnoredLocation(location: Location): boolean {
+        const workspaceFolder = workspace.getWorkspaceFolder(location.uri);
+        const rootPath = workspaceFolder?.uri.fsPath || workspace.workspaceFolders?.[0]?.uri.fsPath;
+        if (!rootPath) {
+            return false;
+        }
+
+        return WorkspaceIgnore.isIgnored(rootPath, location.uri.fsPath);
+    }
+
+    /**
      * 根据上下文推测符号类型
      */
     private guessSymbolType(document: TextDocument, position: Position): 'function' | 'macro' | 'both' | 'type' | 'unknown' {
@@ -403,12 +422,13 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             }
             
             // 策略0: 检查缓存
-            const cacheKey = `${name}:${document.uri.fsPath}:${position.line}:${position.character}`;
+            const cacheKey = `${name}:${document.uri.fsPath}:${position.line}:${position.character}:${WorkspaceIgnore.isEnabled()}`;
             const cached = this.definitionCache.get(cacheKey);
             if (cached && (Date.now() - cached.timestamp) < this.CACHE_TTL) {
-                this.devLog(`[Cache] ✓ Hit! Returning ${cached.results.length} cached results (age: ${Date.now() - cached.timestamp}ms)`);
-                this.devLog(`[Performance] ========== Total time: ${Date.now() - startTime}ms (cached), Found: ${cached.results.length} ==========`);
-                resolve(cached.results);
+                const cachedResults = this.filterIgnoredLocations(cached.results);
+                this.devLog(`[Cache] ✓ Hit! Returning ${cachedResults.length} cached results (age: ${Date.now() - cached.timestamp}ms)`);
+                this.devLog(`[Performance] ========== Total time: ${Date.now() - startTime}ms (cached), Found: ${cachedResults.length} ==========`);
+                resolve(cachedResults);
                 return;
             }
 
@@ -429,14 +449,17 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             // 优先：结构体成员访问时，跳转到结构体类型定义（例如 IN.basecolor -> UnityMetaInput）
             const memberTypeLocations = await this.tryFindStructMemberTypeDefinitions(document, position, wordRange);
             if (memberTypeLocations && memberTypeLocations.length > 0) {
-                this.definitionCache.set(cacheKey, {
-                    results: memberTypeLocations,
-                    timestamp: Date.now()
-                });
-                this.devLog(`[Type] ✓ Found member base type definition for "${name}"`);
-                this.devLog(`[Performance] ========== Total time: ${Date.now() - startTime}ms (type), Found: ${memberTypeLocations.length} ==========`);
-                resolve(memberTypeLocations);
-                return;
+                const filteredMemberTypeLocations = this.filterIgnoredLocations(memberTypeLocations);
+                if (filteredMemberTypeLocations.length > 0) {
+                    this.definitionCache.set(cacheKey, {
+                        results: filteredMemberTypeLocations,
+                        timestamp: Date.now()
+                    });
+                    this.devLog(`[Type] ✓ Found member base type definition for "${name}"`);
+                    this.devLog(`[Performance] ========== Total time: ${Date.now() - startTime}ms (type), Found: ${filteredMemberTypeLocations.length} ==========`);
+                    resolve(filteredMemberTypeLocations);
+                    return;
+                }
             }
               
  			// 策略0.5: 检查持久化缓存
@@ -445,17 +468,22 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
  				const persistentResults = this.searchSymbolFromPersistentCache(name);
 				
 				if (persistentResults.length > 0) {
-					this.devLog(`[PersistentCache] ✓ Hit! Returning ${persistentResults.length} results (time: ${Date.now() - persistentStartTime}ms)`);
-					this.devLog(`[Performance] ========== Total time: ${Date.now() - startTime}ms (persistent), Found: ${persistentResults.length} ==========`);
+					const filteredPersistentResults = this.filterIgnoredLocations(persistentResults);
+					if (filteredPersistentResults.length === 0) {
+						this.devLog(`[PersistentCache] Ignored all ${persistentResults.length} results by .gitignore`);
+					} else {
+					this.devLog(`[PersistentCache] ✓ Hit! Returning ${filteredPersistentResults.length} results (time: ${Date.now() - persistentStartTime}ms)`);
+					this.devLog(`[Performance] ========== Total time: ${Date.now() - startTime}ms (persistent), Found: ${filteredPersistentResults.length} ==========`);
 					
 					// 存入定义缓存
 					this.definitionCache.set(cacheKey, {
-						results: persistentResults,
+						results: filteredPersistentResults,
 						timestamp: Date.now()
 					});
 					
-					resolve(persistentResults);
+					resolve(filteredPersistentResults);
 					return;
+					}
 				}
 				
 			this.devLog(`[PersistentCache] ✗ Miss (time: ${Date.now() - persistentStartTime}ms)`);
@@ -583,7 +611,9 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             }
 
             // 按优先级排序
-            const sortedResults = this.sortLocationsByPriority(Array.from(uniqueResults.values()));
+            const sortedResults = this.sortLocationsByPriority(
+                this.filterIgnoredLocations(Array.from(uniqueResults.values()))
+            );
             
             // 存入缓存
             if (sortedResults.length > 0) {
@@ -1149,7 +1179,7 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
                 
                 for (const fullPath of possiblePaths) {
                     this.devLog(`[Include] Trying: ${fullPath}`);
-                    if (fs.existsSync(fullPath)) {
+                    if (fs.existsSync(fullPath) && !WorkspaceIgnore.isIgnored(rootPath, fullPath)) {
                         this.devLog(`[Include] ✓ Found: ${fullPath}`);
                         return new Location(Uri.file(fullPath), new Position(0, 0));
                     }
@@ -1161,7 +1191,7 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             let fullPath = path.join(currentDir, includePath);
             
             this.devLog(`[Include] Trying relative: ${fullPath}`);
-            if (fs.existsSync(fullPath)) {
+            if (fs.existsSync(fullPath) && !WorkspaceIgnore.isIgnored(rootPath, fullPath)) {
                 this.devLog(`[Include] ✓ Found: ${fullPath}`);
                 return new Location(Uri.file(fullPath), new Position(0, 0));
             }
@@ -1169,7 +1199,7 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             // 3. 尝试相对于工作区根目录
             fullPath = path.join(rootPath, includePath);
             this.devLog(`[Include] Trying root: ${fullPath}`);
-            if (fs.existsSync(fullPath)) {
+            if (fs.existsSync(fullPath) && !WorkspaceIgnore.isIgnored(rootPath, fullPath)) {
                 this.devLog(`[Include] ✓ Found: ${fullPath}`);
                 return new Location(Uri.file(fullPath), new Position(0, 0));
             }
@@ -1199,6 +1229,9 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
                     }
                     
                     const foundPath = path.join(rootPath, bestMatch);
+                    if (WorkspaceIgnore.isIgnored(rootPath, foundPath)) {
+                        return null;
+                    }
                     this.devLog(`[Include] ✓ Found by search: ${foundPath}`);
                     return new Location(Uri.file(foundPath), new Position(0, 0));
                 }                
@@ -1418,17 +1451,18 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             // 3. 默认行为：查找符号定义
             const wordRange = document.getWordRangeAtPosition(position);
             const result = await this.getDefinitionLocations(document, position);
+            const filteredResult = this.filterIgnoredLocations(Array.isArray(result) ? result : [result]);
             
             // 如果结果超过20个，显示快速选择面板
-            if (result.length > 20 && wordRange) {
-                const selected = await this.showQuickPickForDefinitions(result, document.getText(wordRange));
+            if (filteredResult.length > 20 && wordRange) {
+                const selected = await this.showQuickPickForDefinitions(filteredResult, document.getText(wordRange));
                 if (selected) {
                     resolve(selected);
                 } else {
-                    resolve(result);
+                    resolve(filteredResult);
                 }
             } else {
-                resolve(result);
+                resolve(filteredResult);
             }
         });
     }
@@ -1449,8 +1483,9 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
             location: Location;
         }
 
+        const visibleLocations = this.filterIgnoredLocations(locations);
         const items: DefinitionQuickPickItem[] = await Promise.all(
-            locations.map(async (loc) => {
+            visibleLocations.map(async (loc) => {
                 const doc = await workspace.openTextDocument(loc.uri);
                 const line = doc.lineAt(loc.range.start.line);
                 const preview = line.text.trim();
