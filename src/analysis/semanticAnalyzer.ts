@@ -1,3 +1,4 @@
+import { l10n } from 'vscode';
 import * as vscode from 'vscode';
 import { RegexCache } from '../utils/RegexCache';
 import { maskCommentsPreserveLayout } from '../utils/commentMask';
@@ -315,7 +316,7 @@ export class SemanticAnalyzer {
 
                     const diagnostic = new vscode.Diagnostic(
                         range,
-                        `变量 '${varName}' 已声明但未使用 (Variable '${varName}' is declared but never used)`,
+                        l10n.t('Variable \'{0}\' is declared but never used', varName),
                         vscode.DiagnosticSeverity.Hint
                     );
                     diagnostic.tags = [vscode.DiagnosticTag.Unnecessary];
@@ -342,7 +343,7 @@ export class SemanticAnalyzer {
 
                 const diagnostic = new vscode.Diagnostic(
                     range,
-                    `函数 '${funcName}' 已声明但未使用 (Function '${funcName}' is declared but never used)`,
+                    l10n.t('Function \'{0}\' is declared but never used', funcName),
                     vscode.DiagnosticSeverity.Hint
                 );
                 diagnostic.tags = [vscode.DiagnosticTag.Unnecessary];

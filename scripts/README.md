@@ -148,3 +148,46 @@ node scripts/bump-version.js minor
    ```bash
    chmod +x scripts/*.js
    ```
+
+## 本地化维护与验证
+
+扩展文案跟随 VS Code 界面语言，英文为源文案，简体中文资源使用 `zh-cn`。其他语言或缺少译文时回退到英文。设置和命令标题在 `package.nls*.json`，运行时文案使用 `vscode.l10n.t()` 或从 `vscode` 导入的 `l10n.t()`，译文在 `l10n/bundle.l10n.zh-cn.json`。
+
+新增或修改用户可见文案后，执行：
+
+```bash
+npm run l10n:export
+# 补齐 package.nls.zh-cn.json 和 l10n/bundle.l10n.zh-cn.json
+npm run l10n:check
+npm run compile
+npm run test:l10n
+```
+
+`l10n:check` 检查清单资源引用、源文案基准是否过期、英中资源的缺键/空值/多余键和占位符，以及源码中遗漏迁移的中文字符串。英文硬编码仍需要在新增通知、诊断、补全和悬停时检查；仅提取已标记的调用无法发现这些遗漏。打包会自动执行本地化检查。
+
+代码片段的英文资源为 `snippets/unityshader.json`，中文资源为 `snippets/unityshader.zh-cn.json`，由清单中的 `%snippets.path%` 选择。两份文件只允许描述不同，名称、前缀、代码和其他字段必须一致，检查脚本会核对这些内容。选项处理使用稳定字段或选项对象，不根据翻译后的文字判断行为。
+
+`test:l10n` 启动隔离的 VS Code 扩展测试宿主，分别断言实际语言为 `en` 和 `zh-cn`，检查设置、命令、片段路径、HLSL/Unity/URP/Unreal 文档、签名帮助及诊断。结果和日志位于 `.temp/localization/`。默认使用 Windows 上已安装的 VS Code；其他安装位置可通过 `VSCODE_EXECUTABLE` 指定。中文界面需要已安装的简体中文语言包；非默认配置可通过 `VSCODE_LANGUAGE_PACK_CONFIG` 指定语言包索引 `languagepacks.json`。
+
+```bash
+# 仅运行指定语言
+npm run test:l10n -- --locale zh-cn
+# 用 VS Code 原生选择框命令验证重命名取消、Esc 取消和跨文件确认
+npm run test:l10n -- --rename
+# 保留重命名选择框，供人工操作上述三个流程
+npm run test:l10n -- --locale zh-cn --rename-ui
+# 使用最低支持版本；没有指定 VSCODE_EXECUTABLE 时自动下载
+npm run test:l10n -- --version 1.87.0
+# 自动检查后保留窗口，供人工检查界面
+npm run test:l10n -- --locale en --ui
+```
+
+`--ui` 模式检查完毕后，在对应结果目录创建 `ui-complete` 文件，测试宿主便会正常退出。验证解包后的 VSIX 时，把 `LOCALIZATION_EXTENSION_PATH` 指向包内的 `extension` 目录。
+
+`--rename` 使用真实重命名提供器和选择框，调用 VS Code 原生的下一项、接受和 Esc 取消命令。每种语言检查两份文件中的三处引用：两个取消流程要求内存和磁盘内容保持不变，确认流程要求全部替换并保存。`--rename-ui` 改由操作者依次选择取消、按 Esc、选择确认；当前阶段写在对应结果目录的 `ui-ready` 文件中。
+
+```bash
+npm run l10n:pseudo
+```
+
+上述命令生成开发用的 `qps-ploc` 资源，保留片段文件路径。配合 VS Code 的 Pseudo Language Language Pack，可查找尚未接入本地化的显示文字。伪本地化资源不会打入发布包。

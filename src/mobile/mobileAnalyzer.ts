@@ -1,3 +1,4 @@
+import { l10n } from 'vscode';
 /**
  * 移动平台分析器
  * 负责检测移动端不支持的特性、提供优化建议、计算复杂度评分
@@ -8,6 +9,7 @@ import {
     MobilePlatform,
     ComplexityLevel,
     ComplexityScore,
+    complexityLevelLabels,
     unsupportedFeatures,
     precisionSuggestions,
     textureOptimizations,
@@ -172,9 +174,9 @@ export class MobileAnalyzer implements vscode.Disposable {
                         const endPos = document.positionAt(match.index + match[0].length);
                         const range = new vscode.Range(startPos, endPos);
 
-                        let message = `[移动端] ${feature.message}`;
+                        let message = l10n.t('[Mobile] {0}', feature.message);
                         if (feature.alternative) {
-                            message += `\n建议: ${feature.alternative}`;
+                            message += l10n.t('\nSuggestion: {0}', feature.alternative);
                         }
 
                         const severity = feature.severity === 'error' 
@@ -211,7 +213,7 @@ export class MobileAnalyzer implements vscode.Disposable {
 
                     const diagnostic = new vscode.Diagnostic(
                         range,
-                        `[移动端优化] ${suggestion.message}`,
+                        l10n.t('[Mobile optimization] {0}', suggestion.message),
                         vscode.DiagnosticSeverity.Hint
                     );
                     diagnostic.source = DIAGNOSTIC_SOURCE;
@@ -248,7 +250,7 @@ export class MobileAnalyzer implements vscode.Disposable {
 
                 const diagnostic = new vscode.Diagnostic(
                     range,
-                    '[移动端优化] 检测到依赖纹理读取（UV 计算后采样），这在移动端会导致额外的延迟',
+                    l10n.t('[Mobile optimization] Dependent texture read detected (sampling after UV computation); this adds latency on mobile'),
                     vscode.DiagnosticSeverity.Warning
                 );
                 diagnostic.source = DIAGNOSTIC_SOURCE;
@@ -274,9 +276,9 @@ export class MobileAnalyzer implements vscode.Disposable {
                     const endPos = document.positionAt(match.index + match[0].length);
                     const range = new vscode.Range(startPos, endPos);
 
-                    let message = `[移动端] ${func.message}`;
+                    let message = l10n.t('[Mobile] {0}', func.message);
                     if (func.alternative) {
-                        message += `\n建议: ${func.alternative}`;
+                        message += l10n.t('\nSuggestion: {0}', func.alternative);
                     }
 
                     const diagnostic = new vscode.Diagnostic(
@@ -376,16 +378,16 @@ export class MobileAnalyzer implements vscode.Disposable {
         const suggestions: string[] = [];
         
         if (details.textureOps > complexityThresholds.textureOps.medium) {
-            suggestions.push('纹理采样次数较多，考虑合并纹理通道或减少采样');
+            suggestions.push(l10n.t('High texture sample count; consider packing texture channels or reducing samples'));
         }
         if (details.branches > complexityThresholds.branches.low) {
-            suggestions.push('分支语句较多，移动端分支开销大，考虑使用 lerp/step 替代');
+            suggestions.push(l10n.t('Many branches; consider lerp/step to reduce mobile branching cost'));
         }
         if (details.loops > complexityThresholds.loops.low) {
-            suggestions.push('循环语句会增加复杂度，考虑展开循环或减少迭代次数');
+            suggestions.push(l10n.t('Loops increase complexity; consider unrolling them or reducing iterations'));
         }
         if (details.mathOps > complexityThresholds.mathOps.medium) {
-            suggestions.push('高开销数学运算较多，考虑使用查找表（LUT）纹理');
+            suggestions.push(l10n.t('Many expensive math operations; consider lookup table (LUT) textures'));
         }
 
         return {
@@ -422,7 +424,7 @@ export class MobileAnalyzer implements vscode.Disposable {
                 break;
         }
 
-        this.statusBarItem.text = `${icon} Mobile: ${score.level} (${score.score})`;
+        this.statusBarItem.text = `${icon} ${l10n.t('Mobile: {0} ({1})', complexityLevelLabels[score.level], score.score)}`;
         this.statusBarItem.tooltip = this.generateTooltip(score);
         this.statusBarItem.backgroundColor = undefined;
         this.statusBarItem.color = color;
@@ -434,21 +436,21 @@ export class MobileAnalyzer implements vscode.Disposable {
      */
     private generateTooltip(score: ComplexityScore): string {
         const lines = [
-            '📊 移动端 Shader 复杂度分析',
+            l10n.t('📊 Mobile shader complexity analysis'),
             '─'.repeat(30),
-            `复杂度等级: ${score.level}`,
-            `综合评分: ${score.score}`,
+            l10n.t('Complexity level: {0}', complexityLevelLabels[score.level]),
+            l10n.t('Overall score: {0}', score.score),
             '',
-            '📈 详细统计:',
-            `  • 纹理操作: ${score.details.textureOps}`,
-            `  • 高开销数学: ${score.details.mathOps}`,
-            `  • 分支语句: ${score.details.branches}`,
-            `  • 循环语句: ${score.details.loops}`,
-            `  • 估算寄存器: ${Math.round(score.details.registers)}`,
+            l10n.t('📈 Detailed statistics:'),
+            l10n.t('  • Texture operations: {0}', score.details.textureOps),
+            l10n.t('  • Expensive math operations: {0}', score.details.mathOps),
+            l10n.t('  • Branches: {0}', score.details.branches),
+            l10n.t('  • Loops: {0}', score.details.loops),
+            l10n.t('  • Estimated registers: {0}', Math.round(score.details.registers)),
         ];
 
         if (score.suggestions.length > 0) {
-            lines.push('', '💡 优化建议:');
+            lines.push('', l10n.t('💡 Optimization tips:'));
             for (const suggestion of score.suggestions) {
                 lines.push(`  • ${suggestion}`);
             }

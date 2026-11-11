@@ -1,3 +1,4 @@
+import { l10n } from 'vscode';
 import { DefinitionProvider, ImplementationProvider, TypeDefinitionProvider, SymbolInformation, TextDocument, Position, Location, CancellationToken, Definition, workspace, commands, Uri, Range, window } from 'vscode';
 import { CachedSymbolKind } from '../cache/symbolCacheTypes';
 import { join } from 'path';
@@ -1511,7 +1512,7 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
         );
 
         const selected = await window.showQuickPick(items, {
-            placeHolder: `选择 "${symbolName}" 的定义 (${locations.length} 个结果)`,
+            placeHolder: l10n.t('Select a definition for "{0}" ({1} results)', symbolName, locations.length),
             matchOnDescription: true,
             matchOnDetail: true
         });

@@ -1,3 +1,4 @@
+import { l10n } from 'vscode';
 import { window, CompletionItemProvider, CompletionItem, CompletionItemKind, CancellationToken, TextDocument, Position, Range, TextEdit, workspace, MarkdownString, SnippetString } from 'vscode';
 import hlslGlobals = require('./hlslGlobals');
 import { EngineContextManager, EngineType } from '../common/engineContext';
@@ -260,7 +261,7 @@ export default class HLSLCompletionItemProvider implements CompletionItemProvide
                 if (matches(pragmaName) || matches(pragma.name)) {
                     const item = new CompletionItem(pragmaName, CompletionItemKind.Keyword);
                     item.detail = pragma.example;
-                    item.documentation = new MarkdownString(`**${pragma.name}**\n\n${pragma.description}\n\n**示例**: \`${pragma.example}\``);
+                    item.documentation = new MarkdownString(l10n.t('**{0}**\n\n{1}\n\n**Example**: `{2}`', pragma.name, pragma.description, pragma.example));
                     item.sortText = calculateMatchScore(pragmaName, prefix);
                     result.push(item);
                     added[pragmaName] = true;
@@ -360,7 +361,7 @@ export default class HLSLCompletionItemProvider implements CompletionItemProvide
                             added[propType.name] = true;
                             const item = new CompletionItem(propType.name, CompletionItemKind.TypeParameter);
                             item.detail = propType.description;
-                            item.documentation = new MarkdownString(`**${propType.name}**\n\n${propType.description}\n\n**默认值**: \`${propType.defaultValue}\`\n\n**示例**:\n\`\`\`\n${propType.example}\n\`\`\``);
+                            item.documentation = new MarkdownString(l10n.t('**{0}**\n\n{1}\n\n**Default value**: `{2}`\n\n**Example**:\n```\n{3}\n```', propType.name, propType.description, propType.defaultValue, propType.example));
                             item.sortText = calculateMatchScore(propType.name, prefix);
                             result.push(item);
                         }

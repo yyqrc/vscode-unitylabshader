@@ -1,3 +1,4 @@
+import { l10n } from 'vscode';
 /**
  * 移动平台优化 - 全局定义
  * 包含移动端 Shader 开发的特性检测、优化建议等
@@ -63,6 +64,13 @@ export enum ComplexityLevel {
     VeryHigh = 'veryHigh'
 }
 
+export const complexityLevelLabels: Record<ComplexityLevel, string> = {
+    [ComplexityLevel.Low]: l10n.t('Low'),
+    [ComplexityLevel.Medium]: l10n.t('Medium'),
+    [ComplexityLevel.High]: l10n.t('High'),
+    [ComplexityLevel.VeryHigh]: l10n.t('Very High')
+};
+
 /**
  * 复杂度评分结果
  */
@@ -89,23 +97,23 @@ export const unsupportedFeatures: UnsupportedFeature[] = [
         name: 'imageLoad',
         pattern: /\bimageLoad\s*\(/g,
         support: { es30: false, es31: true, metal: true, vulkan: true },
-        message: 'imageLoad 在 ES3.0 上不支持，需要 ES3.1+',
-        alternative: '使用 texelFetch 替代，或限制目标平台为 ES3.1+',
+        message: l10n.t('imageLoad is not supported on ES3.0; ES3.1+ is required'),
+        alternative: l10n.t('Use texelFetch instead, or target ES3.1+'),
         severity: 'warning'
     },
     {
         name: 'imageStore',
         pattern: /\bimageStore\s*\(/g,
         support: { es30: false, es31: true, metal: true, vulkan: true },
-        message: 'imageStore 在 ES3.0 上不支持，需要 ES3.1+',
-        alternative: '使用 RenderTexture 替代，或限制目标平台为 ES3.1+',
+        message: l10n.t('imageStore is not supported on ES3.0; ES3.1+ is required'),
+        alternative: l10n.t('Use RenderTexture instead, or target ES3.1+'),
         severity: 'warning'
     },
     {
         name: 'imageAtomicAdd',
         pattern: /\bimageAtomic\w+\s*\(/g,
         support: { es30: false, es31: true, metal: true, vulkan: true },
-        message: '图像原子操作在 ES3.0 上不支持，需要 ES3.1+',
+        message: l10n.t('Image atomic operations are not supported on ES3.0; ES3.1+ is required'),
         severity: 'warning'
     },
     
@@ -114,8 +122,8 @@ export const unsupportedFeatures: UnsupportedFeature[] = [
         name: 'geometry shader',
         pattern: /\[maxvertexcount\s*\(\d+\)\]/g,
         support: { es30: false, es31: false, metal: false, vulkan: true },
-        message: 'Geometry Shader 在移动平台上性能很差或不支持',
-        alternative: '使用顶点着色器实例化或 GPU Skinning 替代',
+        message: l10n.t('Geometry shaders are slow or unsupported on mobile platforms'),
+        alternative: l10n.t('Use vertex shader instancing or GPU skinning instead'),
         severity: 'warning'
     },
     
@@ -124,8 +132,8 @@ export const unsupportedFeatures: UnsupportedFeature[] = [
         name: 'tessellation',
         pattern: /\bdomain\s*=\s*["']?(tri|quad|isoline)["']?/g,
         support: { es30: false, es31: false, metal: true, vulkan: true },
-        message: 'Tessellation 在大多数移动设备上不支持',
-        alternative: '使用 LOD 系统或预分割网格替代',
+        message: l10n.t('Tessellation is not supported on most mobile devices'),
+        alternative: l10n.t('Use an LOD system or pre-tessellated meshes instead'),
         severity: 'warning'
     },
     
@@ -134,8 +142,8 @@ export const unsupportedFeatures: UnsupportedFeature[] = [
         name: 'double precision',
         pattern: /\bdouble\b/g,
         support: { es30: false, es31: false, metal: false, vulkan: false },
-        message: '双精度浮点 (double) 在移动平台上不支持',
-        alternative: '使用 float 替代，必要时使用 emulated double',
+        message: l10n.t('Double-precision floating point (double) is not supported on mobile platforms'),
+        alternative: l10n.t('Use float instead, or emulate double precision when necessary'),
         severity: 'error'
     },
     
@@ -144,8 +152,8 @@ export const unsupportedFeatures: UnsupportedFeature[] = [
         name: '64-bit integer',
         pattern: /\b(int64|uint64|long)\b/g,
         support: { es30: false, es31: false, metal: true, vulkan: true },
-        message: '64位整数在大多数移动设备上不支持',
-        alternative: '使用两个 32 位整数模拟',
+        message: l10n.t('64-bit integers are not supported on most mobile devices'),
+        alternative: l10n.t('Emulate using two 32-bit integers'),
         severity: 'warning'
     },
     
@@ -154,8 +162,8 @@ export const unsupportedFeatures: UnsupportedFeature[] = [
         name: 'texture3D write',
         pattern: /\bRWTexture3D\b/g,
         support: { es30: false, es31: true, metal: true, vulkan: true },
-        message: '3D 纹理写入在 ES3.0 上不支持',
-        alternative: '使用多层 2D 纹理替代',
+        message: l10n.t('3D texture writes are not supported on ES3.0'),
+        alternative: l10n.t('Use layered 2D textures instead'),
         severity: 'warning'
     },
     
@@ -164,8 +172,8 @@ export const unsupportedFeatures: UnsupportedFeature[] = [
         name: 'MRT > 4',
         pattern: /SV_Target([5-9]|[1-9]\d+)/g,
         support: { es30: false, es31: false, metal: true, vulkan: true },
-        message: '移动平台通常只支持 4 个渲染目标 (SV_Target0-3)',
-        alternative: '减少 MRT 数量或使用多 Pass 渲染',
+        message: l10n.t('Mobile platforms typically support only four render targets (SV_Target0-3)'),
+        alternative: l10n.t('Reduce the MRT count or use multiple rendering passes'),
         severity: 'warning'
     },
 ];
@@ -178,36 +186,36 @@ export const precisionSuggestions: PrecisionSuggestion[] = [
     {
         // 颜色值建议使用 half
         pattern: /\bfloat([234])?\s+(\w*[cC]olor\w*)\b/g,
-        message: '颜色值建议使用 half 精度以提升移动端性能',
+        message: l10n.t('Consider half precision for colors to improve mobile performance'),
         replacement: 'half$1 $2'
     },
     {
         // UV 坐标建议使用 half（如果精度足够）
         pattern: /\bfloat2\s+(\w*[uU][vV]\w*)\b/g,
-        message: 'UV 坐标在大多数情况下可以使用 half2 精度',
+        message: l10n.t('UV coordinates can use half2 precision in most cases'),
         replacement: 'half2 $1'
     },
     {
         // 法线建议使用 half
         pattern: /\bfloat([34])?\s+(\w*[nN]ormal\w*)\b/g,
-        message: '法线向量建议使用 half 精度',
+        message: l10n.t('Consider half precision for normal vectors'),
         replacement: 'half$1 $2'
     },
     {
         // 临时计算变量建议使用 half
         pattern: /\bfloat\s+(temp\w*|tmp\w*)\b/gi,
-        message: '临时变量建议使用 half 精度以减少寄存器压力',
+        message: l10n.t('Consider half precision for temporary variables to reduce register pressure'),
         replacement: 'half $1'
     },
     {
         // 光照计算中的中间值
         pattern: /\bfloat\s+(\w*[dD]iffuse\w*|\w*[sS]pecular\w*|\w*[lL]ight\w*)\b/g,
-        message: '光照计算的中间值建议使用 half 精度',
+        message: l10n.t('Consider half precision for intermediate lighting values'),
     },
     {
         // alpha 值
         pattern: /\bfloat\s+(\w*[aA]lpha\w*)\b/g,
-        message: 'Alpha 值建议使用 half 精度',
+        message: l10n.t('Consider half precision for alpha values'),
         replacement: 'half $1'
     },
 ];
@@ -220,19 +228,19 @@ export const textureOptimizations: TextureOptimization[] = [
     {
         // 没有使用 mipmap 的纹理采样（可能导致性能问题）
         pattern: /tex2D(Lod|Grad)?\s*\([^,]+,\s*[^,]+\)/g,
-        message: '建议检查纹理是否启用了 Mipmap，未启用 Mipmap 可能导致带宽浪费',
+        message: l10n.t('Check whether mipmaps are enabled; missing mipmaps may waste bandwidth'),
         severity: 'info'
     },
     {
         // 依赖纹理读取检测（在 fragment shader 中计算 UV）
         pattern: /tex2D\s*\([^,]+,\s*[^)]*[\+\-\*\/][^)]*\)/g,
-        message: '检测到依赖纹理读取（计算后的 UV），这在移动端可能造成性能损失',
+        message: l10n.t('Dependent texture read detected (computed UVs); this may reduce mobile performance'),
         severity: 'warning'
     },
     {
         // 过多的纹理采样
         pattern: /\b(tex2D|texture|sample)\s*\(/g,
-        message: '纹理采样操作',  // 用于统计
+        message: l10n.t('Texture sampling operation'),  // 用于统计
         severity: 'info'
     },
 ];
@@ -311,26 +319,26 @@ export const discouragedFunctions: Array<{
     {
         name: 'discard/clip',
         pattern: /\b(discard|clip)\b/g,
-        message: 'discard/clip 在移动端开销较大，会破坏 Early-Z 优化',
-        alternative: '使用 alpha blend 或 alpha test with threshold'
+        message: l10n.t('discard/clip is expensive on mobile and can prevent Early-Z optimization'),
+        alternative: l10n.t('Use alpha blending or alpha testing with a threshold')
     },
     {
         name: 'ddx/ddy',
         pattern: /\b(ddx|ddy|fwidth)\s*\(/g,
-        message: '偏导数函数在移动端开销较大',
-        alternative: '预计算梯度值或使用近似方法'
+        message: l10n.t('Derivative functions are expensive on mobile'),
+        alternative: l10n.t('Precompute gradients or use an approximation')
     },
     {
         name: 'noise',
         pattern: /\bnoise\s*\(/g,
-        message: 'noise 函数在移动端通常不支持或性能差',
-        alternative: '使用预计算的噪声纹理'
+        message: l10n.t('noise is often unsupported or slow on mobile'),
+        alternative: l10n.t('Use a precomputed noise texture')
     },
     {
         name: 'GetDimensions',
         pattern: /\bGetDimensions\s*\(/g,
-        message: 'GetDimensions 在某些移动设备上开销较大',
-        alternative: '通过 uniform 传递纹理尺寸'
+        message: l10n.t('GetDimensions is expensive on some mobile devices'),
+        alternative: l10n.t('Pass texture dimensions through a uniform')
     },
 ];
 
@@ -376,12 +384,12 @@ export const complexityThresholds = {
 // ============================================================================
 
 export const mobileOptimizationTips: string[] = [
-    '💡 尽量使用 half 精度代替 float，可显著提升移动端性能',
-    '💡 避免在 Fragment Shader 中使用分支语句',
-    '💡 减少纹理采样次数，考虑合并纹理通道',
-    '💡 避免使用 discard/clip，它会破坏 Early-Z 优化',
-    '💡 预计算复杂数学运算，使用查找表（LUT）纹理',
-    '💡 使用 SV_Target0-3，移动端通常只支持 4 个 MRT',
-    '💡 避免依赖纹理读取，预计算 UV 偏移',
-    '💡 使用纹理压缩格式（ASTC、ETC2）减少带宽',
+    l10n.t('💡 Prefer half precision over float to improve mobile performance'),
+    l10n.t('💡 Avoid branches in fragment shaders'),
+    l10n.t('💡 Reduce texture samples and consider packing texture channels'),
+    l10n.t('💡 Avoid discard/clip, which can prevent Early-Z optimization'),
+    l10n.t('💡 Precompute expensive math using lookup table (LUT) textures'),
+    l10n.t('💡 Use SV_Target0-3; mobile platforms typically support only four MRTs'),
+    l10n.t('💡 Avoid dependent texture reads and precompute UV offsets'),
+    l10n.t('💡 Use texture compression (ASTC, ETC2) to reduce bandwidth'),
 ];

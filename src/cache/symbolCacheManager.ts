@@ -1,3 +1,4 @@
+import { l10n } from 'vscode';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -223,7 +224,7 @@ export class SymbolCacheManager {
         await vscode.window.withProgress(
             {
                 location: vscode.ProgressLocation.Notification,
-                title: 'Building symbol cache',
+                title: l10n.t('Building symbol cache'),
                 cancellable: false,
             },
             async (progress) => {
@@ -313,7 +314,7 @@ export class SymbolCacheManager {
                         
                         processedFiles++;
                         progress.report({
-                            message: `${processedFiles}/${totalFiles} files`,
+                            message: l10n.t('{0}/{1} files', processedFiles, totalFiles),
                             increment: (1 / totalFiles) * 100,
                         });
 
@@ -325,7 +326,7 @@ export class SymbolCacheManager {
                         
                         processedFiles++;
                         progress.report({
-                            message: `${processedFiles}/${totalFiles} files`,
+                            message: l10n.t('{0}/{1} files', processedFiles, totalFiles),
                             increment: (1 / totalFiles) * 100,
                         });
 
@@ -374,7 +375,7 @@ export class SymbolCacheManager {
 
                 processedFiles++;
                 progress.report({
-                    message: `${processedFiles}/${totalFiles} files`,
+                    message: l10n.t('{0}/{1} files', processedFiles, totalFiles),
                     increment: (1 / totalFiles) * 100,
                 });
             } catch (error) {
@@ -983,7 +984,7 @@ export class SymbolCacheManager {
             this.symbolIdentifierMap.clear();
             this.pendingChanges.clear();
 
-            console.log('Symbol cache cleared successfully');
+            console.log(l10n.t('Symbol cache cleared successfully'));
         } catch (error) {
             console.error('Failed to clear cache:', error);
             throw error;

@@ -4,6 +4,19 @@ All notable changes to the "Unity Shader" extension will be documented in this f
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.1.3] - 2026-11-11
+
+### Added
+- 增加英文源文案、简体中文资源和翻译完整性检查。
+
+### Changed
+- 设置、诊断、补全、悬停和代码片段按 VS Code 界面语言显示。
+
+### Fixed
+- 修复新版 VS Code 中 ripgrep 路径变化导致引用搜索和重命名失效。
+- 引擎选择、重命名确认和详情按钮不再依赖特定语言的显示文案。
+
+
 ## [1.1.2] - 2026-06-10
 
 ### Fixed

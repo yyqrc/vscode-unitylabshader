@@ -1,3 +1,4 @@
+import { l10n } from 'vscode';
 
 import { HoverProvider, Hover, SymbolInformation, SymbolKind, MarkdownString, TextDocument, CancellationToken, Range, Position, commands, workspace } from 'vscode';
 import hlslGlobals = require('./hlslGlobals');
@@ -48,15 +49,15 @@ urpBuiltinMacros.forEach(m => urpMacroMap.set(m.name, m));
 
 // ShaderLab 渲染状态关键字悬停提示
 const shaderLabRenderStates: { [key: string]: { description: string; values?: string } } = {
-    'Blend': { description: '设置混合模式', values: 'Blend SrcFactor DstFactor\nBlend SrcFactor DstFactor, SrcFactorA DstFactorA\n\n常用值: One, Zero, SrcColor, SrcAlpha, DstColor, DstAlpha, OneMinusSrcAlpha, OneMinusDstAlpha' },
-    'BlendOp': { description: '设置混合操作', values: 'BlendOp Op\n\n可选值: Add, Sub, RevSub, Min, Max' },
-    'Cull': { description: '设置剔除模式', values: 'Cull Back | Front | Off\n\nBack: 剔除背面（默认）\nFront: 剔除正面\nOff: 禁用剔除（双面渲染）' },
-    'ZWrite': { description: '设置深度写入', values: 'ZWrite On | Off\n\nOn: 启用深度写入（默认）\nOff: 禁用深度写入' },
-    'ZTest': { description: '设置深度测试模式', values: 'ZTest Less | Greater | LEqual | GEqual | Equal | NotEqual | Always\n\nLEqual: 小于等于时通过（默认）\nAlways: 总是通过' },
-    'ColorMask': { description: '设置颜色写入遮罩', values: 'ColorMask RGB | A | 0 | RGBA\n\nRGB: 只写入RGB通道\nA: 只写入Alpha通道\n0: 不写入任何颜色' },
-    'Offset': { description: '设置深度偏移', values: 'Offset factor, units\n\n用于解决Z-fighting问题' },
-    'Stencil': { description: '设置模板测试', values: 'Stencil {\n  Ref [value]\n  Comp [comparison]\n  Pass [operation]\n  Fail [operation]\n  ZFail [operation]\n}' },
-    'AlphaToMask': { description: '启用Alpha到Coverage', values: 'AlphaToMask On | Off' },
+    'Blend': { description: l10n.t('Set the blend mode'), values: l10n.t('Blend SrcFactor DstFactor\nBlend SrcFactor DstFactor, SrcFactorA DstFactorA\n\nCommon values: One, Zero, SrcColor, SrcAlpha, DstColor, DstAlpha, OneMinusSrcAlpha, OneMinusDstAlpha') },
+    'BlendOp': { description: l10n.t('Set the blend operation'), values: l10n.t('BlendOp Op\n\nOptions: Add, Sub, RevSub, Min, Max') },
+    'Cull': { description: l10n.t('Set the culling mode'), values: l10n.t('Cull Back | Front | Off\n\nBack: Cull back faces (default)\nFront: Cull front faces\nOff: Disable culling (two-sided rendering)') },
+    'ZWrite': { description: l10n.t('Set depth writing'), values: l10n.t('ZWrite On | Off\n\nOn: Enable depth writing (default)\nOff: Disable depth writing') },
+    'ZTest': { description: l10n.t('Set the depth test mode'), values: l10n.t('ZTest Less | Greater | LEqual | GEqual | Equal | NotEqual | Always\n\nLEqual: Pass when less than or equal (default)\nAlways: Always pass') },
+    'ColorMask': { description: l10n.t('Set the color write mask'), values: l10n.t('ColorMask RGB | A | 0 | RGBA\n\nRGB: Write RGB channels only\nA: Write the alpha channel only\n0: Do not write color') },
+    'Offset': { description: l10n.t('Set the depth offset'), values: l10n.t('Offset factor, units\n\nUsed to resolve Z-fighting') },
+    'Stencil': { description: l10n.t('Set the stencil test'), values: 'Stencil {\n  Ref [value]\n  Comp [comparison]\n  Pass [operation]\n  Fail [operation]\n  ZFail [operation]\n}' },
+    'AlphaToMask': { description: l10n.t('Enable alpha-to-coverage'), values: 'AlphaToMask On | Off' },
 };
 
 export function textToMarkedString(text: string): MarkdownString {
@@ -129,7 +130,7 @@ export default class HLSLHoverProvider implements HoverProvider {
                 let contents: MarkdownString[] = [];
                 const signature = new MarkdownString(`(*variable*) \`${varType}\` **${name}**`);
                 contents.push(signature);
-                contents.push(new MarkdownString('类型推断 (Type Inference)'));
+                contents.push(new MarkdownString(l10n.t('Type Inference')));
                 return new Hover(contents, wordRange);
             }
         }
@@ -181,7 +182,7 @@ export default class HLSLHoverProvider implements HoverProvider {
                 
                 // 参数说明
                 if (unityFunc.parameters.length > 0) {
-                    let paramMd = new MarkdownString('**参数**:\n');
+                    let paramMd = new MarkdownString(l10n.t('**Parameters**:\n'));
                     unityFunc.parameters.forEach(p => {
                         paramMd.appendMarkdown(`- \`${p.type}\` **${p.name}**: ${p.description}\n`);
                     });
@@ -189,7 +190,7 @@ export default class HLSLHoverProvider implements HoverProvider {
                 }
                 
                 // 返回值
-                contents.push(new MarkdownString(`**返回**: \`${unityFunc.returnType}\``));
+                contents.push(new MarkdownString(l10n.t('**Returns**: `{0}`', unityFunc.returnType)));
                 
                 return new Hover(contents, wordRange);
             }
@@ -203,7 +204,7 @@ export default class HLSLHoverProvider implements HoverProvider {
                 contents.push(new MarkdownString(unityMacro.description));
                 
                 if (unityMacro.usage) {
-                    const usageMd = new MarkdownString('**用法**:');
+                    const usageMd = new MarkdownString(l10n.t('**Usage**:'));
                     usageMd.appendCodeblock(unityMacro.usage, 'hlsl');
                     contents.push(usageMd);
                 }
@@ -230,7 +231,7 @@ export default class HLSLHoverProvider implements HoverProvider {
                 contents.push(new MarkdownString(renderState.description));
                 
                 if (renderState.values) {
-                    const valuesMd = new MarkdownString('**语法**:');
+                    const valuesMd = new MarkdownString(l10n.t('**Syntax**:'));
                     valuesMd.appendCodeblock(renderState.values, 'shaderlab');
                     contents.push(valuesMd);
                 }
@@ -270,7 +271,7 @@ export default class HLSLHoverProvider implements HoverProvider {
                 
                 // 参数说明
                 if (urpFunc.parameters.length > 0) {
-                    let paramMd = new MarkdownString('**参数**:\n');
+                    let paramMd = new MarkdownString(l10n.t('**Parameters**:\n'));
                     urpFunc.parameters.forEach(p => {
                         paramMd.appendMarkdown(`- \`${p.type}\` **${p.name}**: ${p.description}\n`);
                     });
@@ -278,7 +279,7 @@ export default class HLSLHoverProvider implements HoverProvider {
                 }
                 
                 // 返回值
-                contents.push(new MarkdownString(`**返回**: \`${urpFunc.returnType}\``));
+                contents.push(new MarkdownString(l10n.t('**Returns**: `{0}`', urpFunc.returnType)));
                 
                 return new Hover(contents, wordRange);
             }
@@ -292,7 +293,7 @@ export default class HLSLHoverProvider implements HoverProvider {
                 contents.push(new MarkdownString(urpMacro.description));
                 
                 if (urpMacro.usage) {
-                    const usageMd = new MarkdownString('**用法**:');
+                    const usageMd = new MarkdownString(l10n.t('**Usage**:'));
                     usageMd.appendCodeblock(urpMacro.usage, 'hlsl');
                     contents.push(usageMd);
                 }

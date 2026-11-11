@@ -1,3 +1,4 @@
+import { l10n } from 'vscode';
 import * as vscode from 'vscode';
 import { maskCommentsPreserveLayout } from '../utils/commentMask';
 
@@ -127,7 +128,7 @@ export class VariantAnalyzer {
                     range: new vscode.Range(line, lineText.length, line, lineText.length),
                     renderOptions: {
                         after: {
-                            contentText: ` → ${optionCount} variants`,
+                            contentText: l10n.t(' → {0} variants', optionCount),
                             color: this.getVariantCountColor(totalVariants, thresholds),
                             fontStyle: 'italic'
                         }
@@ -147,8 +148,7 @@ export class VariantAnalyzer {
             const range = new vscode.Range(0, 0, 0, 0);
             const diagnostic = new vscode.Diagnostic(
                 range,
-                `Shader 变体数量过多: ${totalVariants} 个变体（建议 < ${thresholds.warning}，最大 ${thresholds.error}）\n` +
-                `Too many shader variants: ${totalVariants} variants (recommended < ${thresholds.warning}, max ${thresholds.error})`,
+                l10n.t('Too many shader variants: {0} variants (recommended < {1}, max {2})', totalVariants, thresholds.warning, thresholds.error),
                 vscode.DiagnosticSeverity.Error
             );
             diagnostics.push(diagnostic);
@@ -156,8 +156,7 @@ export class VariantAnalyzer {
             const range = new vscode.Range(0, 0, 0, 0);
             const diagnostic = new vscode.Diagnostic(
                 range,
-                `Shader 变体数量较多: ${totalVariants} 个变体（建议 < ${thresholds.warning}）\n` +
-                `Many shader variants: ${totalVariants} variants (recommended < ${thresholds.warning})`,
+                l10n.t('Many shader variants: {0} variants (recommended < {1})', totalVariants, thresholds.warning),
                 vscode.DiagnosticSeverity.Warning
             );
             diagnostics.push(diagnostic);
@@ -170,7 +169,7 @@ export class VariantAnalyzer {
             keywords,
             hasWarning: totalVariants > thresholds.warning,
             warningMessage: totalVariants > thresholds.warning 
-                ? `变体数量: ${totalVariants}` 
+                ? l10n.t('Variant count: {0}', totalVariants)
                 : undefined
         };
     }
@@ -248,14 +247,14 @@ export class VariantAnalyzer {
         const options = this.parseOptions(optionsStr); // 使用 parseOptions 方法来正确移除注释
 
         // 构建详细信息
-        let details = `**${pragmaType}** 变体关键字\n\n`;
-        details += `**选项数量**: ${options.length}\n\n`;
-        details += `**所有选项**:\n`;
+        let details = l10n.t('**{0}** variant keywords\n\n', pragmaType);
+        details += l10n.t('**Option count**: {0}\n\n', options.length);
+        details += l10n.t('**All options**:\n');
         
         for (let i = 0; i < options.length; i++) {
             const option = options[i];
             if (option === '__' || option === '_') {
-                details += `  ${i + 1}. \`${option}\` (无定义)\n`;
+                details += l10n.t('  {0}. `{1}` (not defined)\n', i + 1, option);
             } else {
                 details += `  ${i + 1}. \`${option}\`\n`;
             }
@@ -263,21 +262,21 @@ export class VariantAnalyzer {
 
         // 计算当前文档的总变体数
         const result = this.analyzeDocument(document);
-        details += `\n**当前 Shader 总变体数**: ${result.totalVariants}\n`;
+        details += l10n.t('\n**Total variants in this shader**: {0}\n', result.totalVariants);
 
         if (result.hasWarning) {
-            details += `\n⚠️ **警告**: 变体数量较多，可能影响编译时间和包体大小\n`;
-            details += `\n**优化建议**:\n`;
+            details += l10n.t('\n⚠️ **Warning**: A high variant count may increase compilation time and build size\n');
+            details += l10n.t('\n**Optimization tips**:\n');
             
             // 根据当前pragma类型给出不同建议
             if (pragmaType === 'multi_compile') {
-                details += `- 使用 \`shader_feature\` 替代 \`multi_compile\`（如果可能）\n`;
-                details += `- 考虑使用 \`multi_compile_local\` 限制变体范围\n`;
+                details += l10n.t('- Use `shader_feature` instead of `multi_compile` when possible\n');
+                details += l10n.t('- Consider `multi_compile_local` to limit variant scope\n');
             } else {
-                details += `- 考虑使用 \`shader_feature_local\` 限制变体范围\n`;
+                details += l10n.t('- Consider `shader_feature_local` to limit variant scope\n');
             }
-            details += `- 减少不必要的变体组合\n`;
-            details += `- 将相关变体合并为一个pragma\n`;
+            details += l10n.t('- Reduce unnecessary variant combinations\n');
+            details += l10n.t('- Combine related variants into a single pragma\n');
         }
 
         return details;

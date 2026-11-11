@@ -1,3 +1,4 @@
+import { l10n } from 'vscode';
 /**
  * URP (Universal Render Pipeline) 内置定义
  * 包含 URP 特有的变量、函数、宏定义用于代码补全和悬停提示
@@ -18,38 +19,38 @@ export interface URPVariable {
 
 export const urpBuiltinVariables: URPVariable[] = [
     // 主光源
-    { name: '_MainLightPosition', type: 'half4', description: '主光源方向（xyz）和类型标志（w）', category: 'MainLight' },
-    { name: '_MainLightColor', type: 'half4', description: '主光源颜色', category: 'MainLight' },
-    { name: '_MainLightOcclusionProbes', type: 'half4', description: '主光源遮挡探针', category: 'MainLight' },
-    { name: '_MainLightLayerMask', type: 'uint', description: '主光源渲染层掩码', category: 'MainLight' },
+    { name: '_MainLightPosition', type: 'half4', description: l10n.t('Main light direction (xyz) and type flag (w)'), category: l10n.t('MainLight') },
+    { name: '_MainLightColor', type: 'half4', description: l10n.t('Main light color'), category: l10n.t('MainLight') },
+    { name: '_MainLightOcclusionProbes', type: 'half4', description: l10n.t('Main light occlusion probes'), category: l10n.t('MainLight') },
+    { name: '_MainLightLayerMask', type: 'uint', description: l10n.t('Main light rendering layer mask'), category: l10n.t('MainLight') },
 
     // 附加光源
-    { name: '_AdditionalLightsCount', type: 'half4', description: '附加光源数量和参数', category: 'AdditionalLights' },
-    { name: '_AdditionalLightsPosition', type: 'float4[]', description: '附加光源位置数组', category: 'AdditionalLights' },
-    { name: '_AdditionalLightsColor', type: 'half4[]', description: '附加光源颜色数组', category: 'AdditionalLights' },
-    { name: '_AdditionalLightsAttenuation', type: 'half4[]', description: '附加光源衰减数组', category: 'AdditionalLights' },
-    { name: '_AdditionalLightsSpotDir', type: 'half4[]', description: '附加聚光灯方向数组', category: 'AdditionalLights' },
-    { name: '_AdditionalLightsOcclusionProbes', type: 'half4[]', description: '附加光源遮挡探针数组', category: 'AdditionalLights' },
-    { name: '_AdditionalLightsLayerMasks', type: 'float[]', description: '附加光源层掩码数组', category: 'AdditionalLights' },
+    { name: '_AdditionalLightsCount', type: 'half4', description: l10n.t('Additional light count and parameters'), category: l10n.t('AdditionalLights') },
+    { name: '_AdditionalLightsPosition', type: 'float4[]', description: l10n.t('Additional light position array'), category: l10n.t('AdditionalLights') },
+    { name: '_AdditionalLightsColor', type: 'half4[]', description: l10n.t('Additional light color array'), category: l10n.t('AdditionalLights') },
+    { name: '_AdditionalLightsAttenuation', type: 'half4[]', description: l10n.t('Additional light attenuation array'), category: l10n.t('AdditionalLights') },
+    { name: '_AdditionalLightsSpotDir', type: 'half4[]', description: l10n.t('Additional spotlight direction array'), category: l10n.t('AdditionalLights') },
+    { name: '_AdditionalLightsOcclusionProbes', type: 'half4[]', description: l10n.t('Additional light occlusion probe array'), category: l10n.t('AdditionalLights') },
+    { name: '_AdditionalLightsLayerMasks', type: 'float[]', description: l10n.t('Additional light layer mask array'), category: l10n.t('AdditionalLights') },
 
     // 阴影
-    { name: '_MainLightWorldToShadow', type: 'float4x4[5]', description: '主光源世界到阴影空间变换矩阵', category: 'Shadow' },
-    { name: '_CascadeShadowSplitSpheres0', type: 'float4', description: '级联阴影分割球体0', category: 'Shadow' },
-    { name: '_CascadeShadowSplitSpheres1', type: 'float4', description: '级联阴影分割球体1', category: 'Shadow' },
-    { name: '_CascadeShadowSplitSpheres2', type: 'float4', description: '级联阴影分割球体2', category: 'Shadow' },
-    { name: '_CascadeShadowSplitSpheres3', type: 'float4', description: '级联阴影分割球体3', category: 'Shadow' },
-    { name: '_MainLightShadowParams', type: 'float4', description: '主光源阴影参数', category: 'Shadow' },
+    { name: '_MainLightWorldToShadow', type: 'float4x4[5]', description: l10n.t('Main light world-to-shadow matrix'), category: l10n.t('Shadow') },
+    { name: '_CascadeShadowSplitSpheres0', type: 'float4', description: l10n.t('Cascade shadow split sphere 0'), category: l10n.t('Shadow') },
+    { name: '_CascadeShadowSplitSpheres1', type: 'float4', description: l10n.t('Cascade shadow split sphere 1'), category: l10n.t('Shadow') },
+    { name: '_CascadeShadowSplitSpheres2', type: 'float4', description: l10n.t('Cascade shadow split sphere 2'), category: l10n.t('Shadow') },
+    { name: '_CascadeShadowSplitSpheres3', type: 'float4', description: l10n.t('Cascade shadow split sphere 3'), category: l10n.t('Shadow') },
+    { name: '_MainLightShadowParams', type: 'float4', description: l10n.t('Main light shadow parameters'), category: l10n.t('Shadow') },
 
     // 全局光照
-    { name: 'unity_ProbesOcclusion', type: 'half4', description: '探针遮挡数据', category: 'GI' },
-    { name: 'unity_SpecCube0', type: 'TextureCube', description: '反射探针立方体贴图', category: 'GI' },
-    { name: 'unity_SpecCube0_HDR', type: 'half4', description: '反射探针HDR解码参数', category: 'GI' },
+    { name: 'unity_ProbesOcclusion', type: 'half4', description: l10n.t('Probe occlusion data'), category: l10n.t('GI') },
+    { name: 'unity_SpecCube0', type: 'TextureCube', description: l10n.t('Reflection probe cube map'), category: l10n.t('GI') },
+    { name: 'unity_SpecCube0_HDR', type: 'half4', description: l10n.t('Reflection probe HDR decoding parameters'), category: l10n.t('GI') },
 
     // 相机和渲染目标
-    { name: '_ScaledScreenParams', type: 'float4', description: '缩放后的屏幕参数', category: 'Camera' },
-    { name: '_CameraDepthTexture', type: 'Texture2D', description: '相机深度纹理', category: 'Camera' },
-    { name: '_CameraOpaqueTexture', type: 'Texture2D', description: '相机不透明纹理', category: 'Camera' },
-    { name: '_CameraColorTexture', type: 'Texture2D', description: '相机颜色纹理', category: 'Camera' },
+    { name: '_ScaledScreenParams', type: 'float4', description: l10n.t('Scaled screen parameters'), category: l10n.t('Camera') },
+    { name: '_CameraDepthTexture', type: 'Texture2D', description: l10n.t('Camera depth texture'), category: l10n.t('Camera') },
+    { name: '_CameraOpaqueTexture', type: 'Texture2D', description: l10n.t('Camera opaque texture'), category: l10n.t('Camera') },
+    { name: '_CameraColorTexture', type: 'Texture2D', description: l10n.t('Camera color texture'), category: l10n.t('Camera') },
 ];
 
 // ============================================================================
@@ -70,318 +71,318 @@ export const urpBuiltinFunctions: URPFunction[] = [
     {
         name: 'TransformObjectToHClip',
         signature: 'float4 TransformObjectToHClip(float3 positionOS)',
-        description: '将顶点从模型空间变换到齐次裁剪空间',
-        parameters: [{ name: 'positionOS', type: 'float3', description: '模型空间顶点位置' }],
+        description: l10n.t('Transform a vertex from object space to homogeneous clip space'),
+        parameters: [{ name: 'positionOS', type: 'float3', description: l10n.t('Vertex position in object space') }],
         returnType: 'float4',
-        category: 'Transform'
+        category: l10n.t('Transform')
     },
     {
         name: 'TransformObjectToWorld',
         signature: 'float3 TransformObjectToWorld(float3 positionOS)',
-        description: '将顶点从模型空间变换到世界空间',
-        parameters: [{ name: 'positionOS', type: 'float3', description: '模型空间顶点位置' }],
+        description: l10n.t('Transform a vertex from object space to world space'),
+        parameters: [{ name: 'positionOS', type: 'float3', description: l10n.t('Vertex position in object space') }],
         returnType: 'float3',
-        category: 'Transform'
+        category: l10n.t('Transform')
     },
     {
         name: 'TransformWorldToHClip',
         signature: 'float4 TransformWorldToHClip(float3 positionWS)',
-        description: '将顶点从世界空间变换到齐次裁剪空间',
-        parameters: [{ name: 'positionWS', type: 'float3', description: '世界空间顶点位置' }],
+        description: l10n.t('Transform a vertex from world space to homogeneous clip space'),
+        parameters: [{ name: 'positionWS', type: 'float3', description: l10n.t('Vertex position in world space') }],
         returnType: 'float4',
-        category: 'Transform'
+        category: l10n.t('Transform')
     },
     {
         name: 'TransformWorldToView',
         signature: 'float3 TransformWorldToView(float3 positionWS)',
-        description: '将顶点从世界空间变换到视图空间',
-        parameters: [{ name: 'positionWS', type: 'float3', description: '世界空间顶点位置' }],
+        description: l10n.t('Transform a vertex from world space to view space'),
+        parameters: [{ name: 'positionWS', type: 'float3', description: l10n.t('Vertex position in world space') }],
         returnType: 'float3',
-        category: 'Transform'
+        category: l10n.t('Transform')
     },
     {
         name: 'TransformObjectToWorldNormal',
         signature: 'float3 TransformObjectToWorldNormal(float3 normalOS)',
-        description: '将法线从模型空间变换到世界空间',
-        parameters: [{ name: 'normalOS', type: 'float3', description: '模型空间法线' }],
+        description: l10n.t('Transform a normal from object space to world space'),
+        parameters: [{ name: 'normalOS', type: 'float3', description: l10n.t('Normal in object space') }],
         returnType: 'float3',
-        category: 'Transform'
+        category: l10n.t('Transform')
     },
     {
         name: 'TransformObjectToWorldDir',
         signature: 'float3 TransformObjectToWorldDir(float3 dirOS)',
-        description: '将方向向量从模型空间变换到世界空间',
-        parameters: [{ name: 'dirOS', type: 'float3', description: '模型空间方向' }],
+        description: l10n.t('Transform a direction from object space to world space'),
+        parameters: [{ name: 'dirOS', type: 'float3', description: l10n.t('Direction in object space') }],
         returnType: 'float3',
-        category: 'Transform'
+        category: l10n.t('Transform')
     },
     {
         name: 'TransformWorldToObjectDir',
         signature: 'float3 TransformWorldToObjectDir(float3 dirWS)',
-        description: '将方向向量从世界空间变换到模型空间',
-        parameters: [{ name: 'dirWS', type: 'float3', description: '世界空间方向' }],
+        description: l10n.t('Transform a direction from world space to object space'),
+        parameters: [{ name: 'dirWS', type: 'float3', description: l10n.t('Direction in world space') }],
         returnType: 'float3',
-        category: 'Transform'
+        category: l10n.t('Transform')
     },
     {
         name: 'TransformTangentToWorld',
         signature: 'real3 TransformTangentToWorld(real3 dirTS, real3x3 tangentToWorld)',
-        description: '将方向从切线空间变换到世界空间',
+        description: l10n.t('Transform a direction from tangent space to world space'),
         parameters: [
-            { name: 'dirTS', type: 'real3', description: '切线空间方向' },
-            { name: 'tangentToWorld', type: 'real3x3', description: '切线到世界空间变换矩阵' }
+            { name: 'dirTS', type: 'real3', description: l10n.t('Direction in tangent space') },
+            { name: 'tangentToWorld', type: 'real3x3', description: l10n.t('Tangent-to-world transformation matrix') }
         ],
         returnType: 'real3',
-        category: 'Transform'
+        category: l10n.t('Transform')
     },
     {
         name: 'GetVertexPositionInputs',
         signature: 'VertexPositionInputs GetVertexPositionInputs(float3 positionOS)',
-        description: '获取顶点位置输入结构体（包含各空间位置）',
-        parameters: [{ name: 'positionOS', type: 'float3', description: '模型空间顶点位置' }],
+        description: l10n.t('Get vertex position inputs (including positions in each space)'),
+        parameters: [{ name: 'positionOS', type: 'float3', description: l10n.t('Vertex position in object space') }],
         returnType: 'VertexPositionInputs',
-        category: 'Transform'
+        category: l10n.t('Transform')
     },
     {
         name: 'GetVertexNormalInputs',
         signature: 'VertexNormalInputs GetVertexNormalInputs(float3 normalOS, float4 tangentOS)',
-        description: '获取顶点法线输入结构体',
+        description: l10n.t('Get vertex normal inputs'),
         parameters: [
-            { name: 'normalOS', type: 'float3', description: '模型空间法线' },
-            { name: 'tangentOS', type: 'float4', description: '模型空间切线' }
+            { name: 'normalOS', type: 'float3', description: l10n.t('Normal in object space') },
+            { name: 'tangentOS', type: 'float4', description: l10n.t('Tangent in object space') }
         ],
         returnType: 'VertexNormalInputs',
-        category: 'Transform'
+        category: l10n.t('Transform')
     },
 
     // 光照函数
     {
         name: 'GetMainLight',
         signature: 'Light GetMainLight()',
-        description: '获取主光源信息',
+        description: l10n.t('Get main light information'),
         parameters: [],
         returnType: 'Light',
-        category: 'Lighting'
+        category: l10n.t('Lighting')
     },
     {
         name: 'GetMainLight',
         signature: 'Light GetMainLight(float4 shadowCoord)',
-        description: '获取主光源信息（带阴影）',
-        parameters: [{ name: 'shadowCoord', type: 'float4', description: '阴影坐标' }],
+        description: l10n.t('Get main light information (with shadows)'),
+        parameters: [{ name: 'shadowCoord', type: 'float4', description: l10n.t('Shadow coordinates') }],
         returnType: 'Light',
-        category: 'Lighting'
+        category: l10n.t('Lighting')
     },
     {
         name: 'GetAdditionalLightsCount',
         signature: 'int GetAdditionalLightsCount()',
-        description: '获取附加光源数量',
+        description: l10n.t('Get the additional light count'),
         parameters: [],
         returnType: 'int',
-        category: 'Lighting'
+        category: l10n.t('Lighting')
     },
     {
         name: 'GetAdditionalLight',
         signature: 'Light GetAdditionalLight(uint i, float3 positionWS)',
-        description: '获取指定索引的附加光源',
+        description: l10n.t('Get an additional light by index'),
         parameters: [
-            { name: 'i', type: 'uint', description: '光源索引' },
-            { name: 'positionWS', type: 'float3', description: '世界空间位置' }
+            { name: 'i', type: 'uint', description: l10n.t('Light index') },
+            { name: 'positionWS', type: 'float3', description: l10n.t('Position in world space') }
         ],
         returnType: 'Light',
-        category: 'Lighting'
+        category: l10n.t('Lighting')
     },
     {
         name: 'LightingLambert',
         signature: 'half3 LightingLambert(half3 lightColor, half3 lightDir, half3 normal)',
-        description: 'Lambert 漫反射光照计算',
+        description: l10n.t('Compute Lambert diffuse lighting'),
         parameters: [
-            { name: 'lightColor', type: 'half3', description: '光源颜色' },
-            { name: 'lightDir', type: 'half3', description: '光源方向' },
-            { name: 'normal', type: 'half3', description: '表面法线' }
+            { name: 'lightColor', type: 'half3', description: l10n.t('Light color') },
+            { name: 'lightDir', type: 'half3', description: l10n.t('Light direction') },
+            { name: 'normal', type: 'half3', description: l10n.t('Surface normal') }
         ],
         returnType: 'half3',
-        category: 'Lighting'
+        category: l10n.t('Lighting')
     },
     {
         name: 'LightingSpecular',
         signature: 'half3 LightingSpecular(half3 lightColor, half3 lightDir, half3 normal, half3 viewDir, half4 specular, half smoothness)',
-        description: 'Blinn-Phong 高光计算',
+        description: l10n.t('Compute Blinn-Phong specular lighting'),
         parameters: [
-            { name: 'lightColor', type: 'half3', description: '光源颜色' },
-            { name: 'lightDir', type: 'half3', description: '光源方向' },
-            { name: 'normal', type: 'half3', description: '表面法线' },
-            { name: 'viewDir', type: 'half3', description: '视线方向' },
-            { name: 'specular', type: 'half4', description: '高光颜色' },
-            { name: 'smoothness', type: 'half', description: '光滑度' }
+            { name: 'lightColor', type: 'half3', description: l10n.t('Light color') },
+            { name: 'lightDir', type: 'half3', description: l10n.t('Light direction') },
+            { name: 'normal', type: 'half3', description: l10n.t('Surface normal') },
+            { name: 'viewDir', type: 'half3', description: l10n.t('View direction') },
+            { name: 'specular', type: 'half4', description: l10n.t('Specular color') },
+            { name: 'smoothness', type: 'half', description: l10n.t('Smoothness') }
         ],
         returnType: 'half3',
-        category: 'Lighting'
+        category: l10n.t('Lighting')
     },
     {
         name: 'UniversalFragmentPBR',
         signature: 'half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData)',
-        description: 'URP PBR 光照计算',
+        description: l10n.t('Compute URP PBR lighting'),
         parameters: [
-            { name: 'inputData', type: 'InputData', description: '输入数据结构' },
-            { name: 'surfaceData', type: 'SurfaceData', description: '表面数据结构' }
+            { name: 'inputData', type: 'InputData', description: l10n.t('Input data structure') },
+            { name: 'surfaceData', type: 'SurfaceData', description: l10n.t('Surface data structure') }
         ],
         returnType: 'half4',
-        category: 'Lighting'
+        category: l10n.t('Lighting')
     },
     {
         name: 'UniversalFragmentBlinnPhong',
         signature: 'half4 UniversalFragmentBlinnPhong(InputData inputData, SurfaceData surfaceData)',
-        description: 'URP Blinn-Phong 光照计算',
+        description: l10n.t('Compute URP Blinn-Phong lighting'),
         parameters: [
-            { name: 'inputData', type: 'InputData', description: '输入数据结构' },
-            { name: 'surfaceData', type: 'SurfaceData', description: '表面数据结构' }
+            { name: 'inputData', type: 'InputData', description: l10n.t('Input data structure') },
+            { name: 'surfaceData', type: 'SurfaceData', description: l10n.t('Surface data structure') }
         ],
         returnType: 'half4',
-        category: 'Lighting'
+        category: l10n.t('Lighting')
     },
 
     // 阴影函数
     {
         name: 'GetShadowCoord',
         signature: 'float4 GetShadowCoord(VertexPositionInputs vertexInput)',
-        description: '获取阴影坐标',
-        parameters: [{ name: 'vertexInput', type: 'VertexPositionInputs', description: '顶点位置输入' }],
+        description: l10n.t('Get shadow coordinates'),
+        parameters: [{ name: 'vertexInput', type: 'VertexPositionInputs', description: l10n.t('Vertex position inputs') }],
         returnType: 'float4',
-        category: 'Shadow'
+        category: l10n.t('Shadow')
     },
     {
         name: 'TransformWorldToShadowCoord',
         signature: 'float4 TransformWorldToShadowCoord(float3 positionWS)',
-        description: '将世界空间位置变换到阴影坐标',
-        parameters: [{ name: 'positionWS', type: 'float3', description: '世界空间位置' }],
+        description: l10n.t('Transform a world-space position to shadow coordinates'),
+        parameters: [{ name: 'positionWS', type: 'float3', description: l10n.t('Position in world space') }],
         returnType: 'float4',
-        category: 'Shadow'
+        category: l10n.t('Shadow')
     },
     {
         name: 'MainLightRealtimeShadow',
         signature: 'half MainLightRealtimeShadow(float4 shadowCoord)',
-        description: '计算主光源实时阴影衰减',
-        parameters: [{ name: 'shadowCoord', type: 'float4', description: '阴影坐标' }],
+        description: l10n.t('Compute main light realtime shadow attenuation'),
+        parameters: [{ name: 'shadowCoord', type: 'float4', description: l10n.t('Shadow coordinates') }],
         returnType: 'half',
-        category: 'Shadow'
+        category: l10n.t('Shadow')
     },
     {
         name: 'AdditionalLightRealtimeShadow',
         signature: 'half AdditionalLightRealtimeShadow(int lightIndex, float3 positionWS)',
-        description: '计算附加光源实时阴影衰减',
+        description: l10n.t('Compute additional light realtime shadow attenuation'),
         parameters: [
-            { name: 'lightIndex', type: 'int', description: '光源索引' },
-            { name: 'positionWS', type: 'float3', description: '世界空间位置' }
+            { name: 'lightIndex', type: 'int', description: l10n.t('Light index') },
+            { name: 'positionWS', type: 'float3', description: l10n.t('Position in world space') }
         ],
         returnType: 'half',
-        category: 'Shadow'
+        category: l10n.t('Shadow')
     },
 
     // GI 函数
     {
         name: 'SampleSH',
         signature: 'half3 SampleSH(half3 normalWS)',
-        description: '采样球谐光照',
-        parameters: [{ name: 'normalWS', type: 'half3', description: '世界空间法线' }],
+        description: l10n.t('Sample spherical harmonics lighting'),
+        parameters: [{ name: 'normalWS', type: 'half3', description: l10n.t('World-space normal') }],
         returnType: 'half3',
-        category: 'GI'
+        category: l10n.t('GI')
     },
     {
         name: 'GlossyEnvironmentReflection',
         signature: 'half3 GlossyEnvironmentReflection(half3 reflectVector, half perceptualRoughness, half occlusion)',
-        description: '采样光泽环境反射',
+        description: l10n.t('Sample glossy environment reflections'),
         parameters: [
-            { name: 'reflectVector', type: 'half3', description: '反射向量' },
-            { name: 'perceptualRoughness', type: 'half', description: '感知粗糙度' },
-            { name: 'occlusion', type: 'half', description: '遮挡值' }
+            { name: 'reflectVector', type: 'half3', description: l10n.t('Reflection vector') },
+            { name: 'perceptualRoughness', type: 'half', description: l10n.t('Perceptual roughness') },
+            { name: 'occlusion', type: 'half', description: l10n.t('Occlusion value') }
         ],
         returnType: 'half3',
-        category: 'GI'
+        category: l10n.t('GI')
     },
     {
         name: 'SampleLightmap',
         signature: 'half3 SampleLightmap(float2 lightmapUV, half3 normalWS)',
-        description: '采样光照贴图',
+        description: l10n.t('Sample a lightmap'),
         parameters: [
-            { name: 'lightmapUV', type: 'float2', description: '光照贴图UV' },
-            { name: 'normalWS', type: 'half3', description: '世界空间法线' }
+            { name: 'lightmapUV', type: 'float2', description: l10n.t('Lightmap UV coordinates') },
+            { name: 'normalWS', type: 'half3', description: l10n.t('World-space normal') }
         ],
         returnType: 'half3',
-        category: 'GI'
+        category: l10n.t('GI')
     },
 
     // 深度函数
     {
         name: 'LinearEyeDepth',
         signature: 'real LinearEyeDepth(real depth, float4 zBufferParam)',
-        description: '将深度缓冲值转换为线性视图空间深度',
+        description: l10n.t('Convert a depth-buffer value to linear view-space depth'),
         parameters: [
-            { name: 'depth', type: 'real', description: '深度缓冲值' },
-            { name: 'zBufferParam', type: 'float4', description: 'Z缓冲参数' }
+            { name: 'depth', type: 'real', description: l10n.t('Depth-buffer value') },
+            { name: 'zBufferParam', type: 'float4', description: l10n.t('Z-buffer parameters') }
         ],
         returnType: 'real',
-        category: 'Depth'
+        category: l10n.t('Depth')
     },
     {
         name: 'Linear01Depth',
         signature: 'real Linear01Depth(real depth, float4 zBufferParam)',
-        description: '将深度缓冲值转换为0-1范围的线性深度',
+        description: l10n.t('Convert a depth-buffer value to linear depth in the 0-1 range'),
         parameters: [
-            { name: 'depth', type: 'real', description: '深度缓冲值' },
-            { name: 'zBufferParam', type: 'float4', description: 'Z缓冲参数' }
+            { name: 'depth', type: 'real', description: l10n.t('Depth-buffer value') },
+            { name: 'zBufferParam', type: 'float4', description: l10n.t('Z-buffer parameters') }
         ],
         returnType: 'real',
-        category: 'Depth'
+        category: l10n.t('Depth')
     },
 
     // 法线函数
     {
         name: 'UnpackNormal',
         signature: 'real3 UnpackNormal(real4 packedNormal)',
-        description: '从法线贴图解压法线',
-        parameters: [{ name: 'packedNormal', type: 'real4', description: '压缩的法线数据' }],
+        description: l10n.t('Unpack a normal from a normal map'),
+        parameters: [{ name: 'packedNormal', type: 'real4', description: l10n.t('Packed normal data') }],
         returnType: 'real3',
-        category: 'Normal'
+        category: l10n.t('Normal')
     },
     {
         name: 'UnpackNormalScale',
         signature: 'real3 UnpackNormalScale(real4 packedNormal, real scale)',
-        description: '从法线贴图解压法线并应用缩放',
+        description: l10n.t('Unpack and scale a normal from a normal map'),
         parameters: [
-            { name: 'packedNormal', type: 'real4', description: '压缩的法线数据' },
-            { name: 'scale', type: 'real', description: '法线强度缩放' }
+            { name: 'packedNormal', type: 'real4', description: l10n.t('Packed normal data') },
+            { name: 'scale', type: 'real', description: l10n.t('Normal strength scale') }
         ],
         returnType: 'real3',
-        category: 'Normal'
+        category: l10n.t('Normal')
     },
     {
         name: 'NormalizeNormalPerPixel',
         signature: 'half3 NormalizeNormalPerPixel(half3 normalWS)',
-        description: '逐像素归一化法线',
-        parameters: [{ name: 'normalWS', type: 'half3', description: '世界空间法线' }],
+        description: l10n.t('Normalize a normal per pixel'),
+        parameters: [{ name: 'normalWS', type: 'half3', description: l10n.t('World-space normal') }],
         returnType: 'half3',
-        category: 'Normal'
+        category: l10n.t('Normal')
     },
 
     // 雾效函数
     {
         name: 'ComputeFogFactor',
         signature: 'real ComputeFogFactor(float z)',
-        description: '计算雾效因子',
-        parameters: [{ name: 'z', type: 'float', description: '裁剪空间Z坐标' }],
+        description: l10n.t('Compute the fog factor'),
+        parameters: [{ name: 'z', type: 'float', description: l10n.t('Clip-space Z coordinate') }],
         returnType: 'real',
-        category: 'Fog'
+        category: l10n.t('Fog')
     },
     {
         name: 'MixFog',
         signature: 'half3 MixFog(half3 fragColor, half fogFactor)',
-        description: '混合雾效颜色',
+        description: l10n.t('Blend the fog color'),
         parameters: [
-            { name: 'fragColor', type: 'half3', description: '片元颜色' },
-            { name: 'fogFactor', type: 'half', description: '雾效因子' }
+            { name: 'fragColor', type: 'half3', description: l10n.t('Fragment color') },
+            { name: 'fogFactor', type: 'half', description: l10n.t('Fog factor') }
         ],
         returnType: 'half3',
-        category: 'Fog'
+        category: l10n.t('Fog')
     },
 ];
 
@@ -398,45 +399,45 @@ export interface URPMacro {
 
 export const urpBuiltinMacros: URPMacro[] = [
     // 关键字宏
-    { name: '_MAIN_LIGHT_SHADOWS', description: '启用主光源阴影', category: 'Keyword' },
-    { name: '_MAIN_LIGHT_SHADOWS_CASCADE', description: '启用级联阴影', category: 'Keyword' },
-    { name: '_MAIN_LIGHT_SHADOWS_SCREEN', description: '启用屏幕空间阴影', category: 'Keyword' },
-    { name: '_ADDITIONAL_LIGHTS', description: '启用附加光源', category: 'Keyword' },
-    { name: '_ADDITIONAL_LIGHTS_VERTEX', description: '启用顶点附加光照', category: 'Keyword' },
-    { name: '_ADDITIONAL_LIGHT_SHADOWS', description: '启用附加光源阴影', category: 'Keyword' },
-    { name: '_SHADOWS_SOFT', description: '启用软阴影', category: 'Keyword' },
-    { name: '_MIXED_LIGHTING_SUBTRACTIVE', description: '混合照明减法模式', category: 'Keyword' },
-    { name: '_SCREEN_SPACE_OCCLUSION', description: '启用屏幕空间遮挡', category: 'Keyword' },
-    { name: '_NORMALMAP', description: '启用法线贴图', category: 'Keyword' },
-    { name: '_EMISSION', description: '启用自发光', category: 'Keyword' },
-    { name: '_SPECULAR_SETUP', description: '使用高光工作流', category: 'Keyword' },
+    { name: '_MAIN_LIGHT_SHADOWS', description: l10n.t('Enable main light shadows'), category: l10n.t('Keyword') },
+    { name: '_MAIN_LIGHT_SHADOWS_CASCADE', description: l10n.t('Enable cascaded shadows'), category: l10n.t('Keyword') },
+    { name: '_MAIN_LIGHT_SHADOWS_SCREEN', description: l10n.t('Enable screen-space shadows'), category: l10n.t('Keyword') },
+    { name: '_ADDITIONAL_LIGHTS', description: l10n.t('Enable additional lights'), category: l10n.t('Keyword') },
+    { name: '_ADDITIONAL_LIGHTS_VERTEX', description: l10n.t('Enable per-vertex additional lighting'), category: l10n.t('Keyword') },
+    { name: '_ADDITIONAL_LIGHT_SHADOWS', description: l10n.t('Enable additional light shadows'), category: l10n.t('Keyword') },
+    { name: '_SHADOWS_SOFT', description: l10n.t('Enable soft shadows'), category: l10n.t('Keyword') },
+    { name: '_MIXED_LIGHTING_SUBTRACTIVE', description: l10n.t('Subtractive mixed lighting mode'), category: l10n.t('Keyword') },
+    { name: '_SCREEN_SPACE_OCCLUSION', description: l10n.t('Enable screen-space occlusion'), category: l10n.t('Keyword') },
+    { name: '_NORMALMAP', description: l10n.t('Enable normal mapping'), category: l10n.t('Keyword') },
+    { name: '_EMISSION', description: l10n.t('Enable emission'), category: l10n.t('Keyword') },
+    { name: '_SPECULAR_SETUP', description: l10n.t('Use the specular workflow'), category: l10n.t('Keyword') },
 
     // 纹理宏
-    { name: 'TEXTURE2D', description: '声明2D纹理', usage: 'TEXTURE2D(_MainTex)', category: 'Texture' },
-    { name: 'TEXTURECUBE', description: '声明立方体纹理', usage: 'TEXTURECUBE(_CubeMap)', category: 'Texture' },
-    { name: 'TEXTURE3D', description: '声明3D纹理', usage: 'TEXTURE3D(_Volume)', category: 'Texture' },
-    { name: 'TEXTURE2D_ARRAY', description: '声明2D纹理数组', usage: 'TEXTURE2D_ARRAY(_TexArray)', category: 'Texture' },
-    { name: 'SAMPLER', description: '声明采样器', usage: 'SAMPLER(sampler_MainTex)', category: 'Texture' },
-    { name: 'SAMPLE_TEXTURE2D', description: '采样2D纹理', usage: 'SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv)', category: 'Texture' },
-    { name: 'SAMPLE_TEXTURE2D_LOD', description: '采样2D纹理指定LOD', usage: 'SAMPLE_TEXTURE2D_LOD(_MainTex, sampler_MainTex, uv, lod)', category: 'Texture' },
-    { name: 'SAMPLE_TEXTURECUBE', description: '采样立方体纹理', usage: 'SAMPLE_TEXTURECUBE(_CubeMap, sampler_CubeMap, dir)', category: 'Texture' },
-    { name: 'SAMPLE_TEXTURECUBE_LOD', description: '采样立方体纹理指定LOD', usage: 'SAMPLE_TEXTURECUBE_LOD(_CubeMap, sampler_CubeMap, dir, lod)', category: 'Texture' },
+    { name: 'TEXTURE2D', description: l10n.t('Declare a 2D texture'), usage: 'TEXTURE2D(_MainTex)', category: l10n.t('Texture') },
+    { name: 'TEXTURECUBE', description: l10n.t('Declare a cube texture'), usage: 'TEXTURECUBE(_CubeMap)', category: l10n.t('Texture') },
+    { name: 'TEXTURE3D', description: l10n.t('Declare a 3D texture'), usage: 'TEXTURE3D(_Volume)', category: l10n.t('Texture') },
+    { name: 'TEXTURE2D_ARRAY', description: l10n.t('Declare a 2D texture array'), usage: 'TEXTURE2D_ARRAY(_TexArray)', category: l10n.t('Texture') },
+    { name: 'SAMPLER', description: l10n.t('Declare a sampler'), usage: 'SAMPLER(sampler_MainTex)', category: l10n.t('Texture') },
+    { name: 'SAMPLE_TEXTURE2D', description: l10n.t('Sample a 2D texture'), usage: 'SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv)', category: l10n.t('Texture') },
+    { name: 'SAMPLE_TEXTURE2D_LOD', description: l10n.t('Sample a 2D texture at the specified LOD'), usage: 'SAMPLE_TEXTURE2D_LOD(_MainTex, sampler_MainTex, uv, lod)', category: l10n.t('Texture') },
+    { name: 'SAMPLE_TEXTURECUBE', description: l10n.t('Sample a cube texture'), usage: 'SAMPLE_TEXTURECUBE(_CubeMap, sampler_CubeMap, dir)', category: l10n.t('Texture') },
+    { name: 'SAMPLE_TEXTURECUBE_LOD', description: l10n.t('Sample a cube texture at the specified LOD'), usage: 'SAMPLE_TEXTURECUBE_LOD(_CubeMap, sampler_CubeMap, dir, lod)', category: l10n.t('Texture') },
 
     // CBuffer 宏
-    { name: 'CBUFFER_START', description: '开始常量缓冲区', usage: 'CBUFFER_START(UnityPerMaterial)', category: 'CBuffer' },
-    { name: 'CBUFFER_END', description: '结束常量缓冲区', usage: 'CBUFFER_END', category: 'CBuffer' },
+    { name: 'CBUFFER_START', description: l10n.t('Begin a constant buffer'), usage: 'CBUFFER_START(UnityPerMaterial)', category: l10n.t('CBuffer') },
+    { name: 'CBUFFER_END', description: l10n.t('End a constant buffer'), usage: 'CBUFFER_END', category: l10n.t('CBuffer') },
 
     // 变换宏
-    { name: 'TRANSFORM_TEX', description: '应用纹理缩放偏移', usage: 'TRANSFORM_TEX(uv, _MainTex)', category: 'Transform' },
+    { name: 'TRANSFORM_TEX', description: l10n.t('Apply texture scale and offset'), usage: 'TRANSFORM_TEX(uv, _MainTex)', category: l10n.t('Transform') },
 
     // 实例化宏
-    { name: 'UNITY_SETUP_INSTANCE_ID', description: '设置实例ID', usage: 'UNITY_SETUP_INSTANCE_ID(input)', category: 'Instancing' },
-    { name: 'UNITY_TRANSFER_INSTANCE_ID', description: '传递实例ID', usage: 'UNITY_TRANSFER_INSTANCE_ID(input, output)', category: 'Instancing' },
-    { name: 'UNITY_VERTEX_INPUT_INSTANCE_ID', description: '声明顶点输入实例ID', category: 'Instancing' },
+    { name: 'UNITY_SETUP_INSTANCE_ID', description: l10n.t('Set up the instance ID'), usage: 'UNITY_SETUP_INSTANCE_ID(input)', category: l10n.t('Instancing') },
+    { name: 'UNITY_TRANSFER_INSTANCE_ID', description: l10n.t('Transfer the instance ID'), usage: 'UNITY_TRANSFER_INSTANCE_ID(input, output)', category: l10n.t('Instancing') },
+    { name: 'UNITY_VERTEX_INPUT_INSTANCE_ID', description: l10n.t('Declare a vertex input instance ID'), category: l10n.t('Instancing') },
 
     // 立体渲染宏
-    { name: 'UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO', description: '初始化立体渲染输出', usage: 'UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output)', category: 'Stereo' },
-    { name: 'UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX', description: '设置立体眼睛索引', usage: 'UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input)', category: 'Stereo' },
+    { name: 'UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO', description: l10n.t('Initialize stereo rendering output'), usage: 'UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output)', category: l10n.t('Stereo') },
+    { name: 'UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX', description: l10n.t('Set up the stereo eye index'), usage: 'UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input)', category: l10n.t('Stereo') },
 ];
 
 // ============================================================================
@@ -463,7 +464,7 @@ export const urpIncludePaths: string[] = [
 export function createURPVariableCompletionItem(v: URPVariable): CompletionItem {
     const item = new CompletionItem(v.name, CompletionItemKind.Variable);
     item.detail = `(URP ${v.category}) ${v.type}`;
-    item.documentation = new MarkdownString(`**${v.name}** (URP)\n\n${v.description}\n\n- **类型**: \`${v.type}\`\n- **分类**: ${v.category}`);
+    item.documentation = new MarkdownString(l10n.t('**{0}** (URP)\n\n{1}\n\n- **Type**: `{2}`\n- **Category**: {3}', v.name, v.description, v.type, v.category));
     return item;
 }
 
@@ -471,7 +472,7 @@ export function createURPFunctionCompletionItem(f: URPFunction): CompletionItem 
     const item = new CompletionItem(f.name, CompletionItemKind.Function);
     item.detail = `(URP) ${f.signature}`;
     const paramDocs = f.parameters.map(p => `- \`${p.type}\` **${p.name}**: ${p.description}`).join('\n');
-    item.documentation = new MarkdownString(`**${f.name}** (URP)\n\n${f.description}\n\n**参数**:\n${paramDocs || '无'}\n\n**返回**: \`${f.returnType}\``);
+    item.documentation = new MarkdownString(l10n.t('**{0}** (URP)\n\n{1}\n\n**Parameters**:\n{2}\n\n**Returns**: `{3}`', f.name, f.description, paramDocs || l10n.t('None'), f.returnType));
     item.insertText = f.name;
     return item;
 }
@@ -479,7 +480,7 @@ export function createURPFunctionCompletionItem(f: URPFunction): CompletionItem 
 export function createURPMacroCompletionItem(m: URPMacro): CompletionItem {
     const item = new CompletionItem(m.name, CompletionItemKind.Constant);
     item.detail = `(URP ${m.category}) Macro`;
-    const usageText = m.usage ? `\n\n**用法**: \`${m.usage}\`` : '';
+    const usageText = m.usage ? l10n.t('\n\n**Usage**: `{0}`', m.usage) : '';
     item.documentation = new MarkdownString(`**${m.name}** (URP)\n\n${m.description}${usageText}`);
     return item;
 }
@@ -487,7 +488,7 @@ export function createURPMacroCompletionItem(m: URPMacro): CompletionItem {
 export function createIncludeCompletionItem(path: string): CompletionItem {
     const item = new CompletionItem(path, CompletionItemKind.File);
     item.detail = 'URP Include';
-    item.documentation = new MarkdownString(`**URP Include 路径**\n\n\`#include "${path}"\``);
+    item.documentation = new MarkdownString(l10n.t('**URP include path**\n\n`#include "{0}"`', path));
     item.insertText = `#include "${path}"`;
     return item;
 }

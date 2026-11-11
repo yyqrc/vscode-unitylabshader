@@ -1,7 +1,9 @@
+import { l10n } from 'vscode';
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
 
 import { setHlslExtensions, setRgPath } from './common';
 import { EngineContextManager } from './common/engineContext';
@@ -21,6 +23,7 @@ import HLSLFormattingProvider from './hlsl/formattingProvider';
 import { SemanticAnalyzer } from './analysis/semanticAnalyzer';
 import { VariantAnalyzer } from './analysis/variantAnalyzer';
 import { MobileAnalyzer } from './mobile';
+import { complexityLevelLabels } from './mobile/mobileGlobals';
 
 // Unity Shader 支持的文件类型
 const documentSelector = [
@@ -29,15 +32,23 @@ const documentSelector = [
 ];
 
 /**
- * 获取 VS Code 内置的 ripgrep 路径
+ * 优先使用 VS Code 内置的 ripgrep，兼容不同版本的布局。
+ * 其他布局使用扩展已打包的 @vscode/ripgrep，不依赖系统 PATH。
  */
-function getVscodeRgPath(): string {
+function resolveRgPath(context: vscode.ExtensionContext): string {
     const vscodeAppRoot = vscode.env.appRoot;
-    // VS Code 内置 ripgrep 的路径
-    // Windows: node_modules/@vscode/ripgrep/bin/rg.exe
-    // macOS/Linux: node_modules/@vscode/ripgrep/bin/rg
     const rgExe = process.platform === 'win32' ? 'rg.exe' : 'rg';
-    return path.join(vscodeAppRoot, 'node_modules', '@vscode', 'ripgrep', 'bin', rgExe);
+    const candidates = [
+        path.join(vscodeAppRoot, 'node_modules.asar.unpacked', '@vscode', 'ripgrep-universal', 'bin', `${process.platform}-${process.arch}`, rgExe),
+        path.join(vscodeAppRoot, 'node_modules', '@vscode', 'ripgrep-universal', 'bin', `${process.platform}-${process.arch}`, rgExe),
+        path.join(vscodeAppRoot, 'node_modules', '@vscode', 'ripgrep', 'bin', rgExe),
+        context.asAbsolutePath(path.join('node_modules', '@vscode', 'ripgrep', 'bin', rgExe))
+    ];
+    const rgPath = candidates.find(candidate => fs.existsSync(candidate));
+    if (!rgPath) {
+        throw new Error(l10n.t('Could not find ripgrep. Reinstall the extension to restore its bundled search tool.'));
+    }
+    return rgPath;
 }
 
 // 全局符号缓存管理器实例
@@ -76,8 +87,8 @@ export function activate(context: vscode.ExtensionContext) {
 		});
 	}
 
-    // 初始化 ripgrep 路径（使用 VS Code 内置的 ripgrep）
-    const rgPath = getVscodeRgPath();
+    // 初始化所有搜索使用方的 ripgrep 路径
+    const rgPath = resolveRgPath(context);
     setRgPath(rgPath);
     RipgrepUtils.setRgPath(rgPath);  // 同时初始化CommonUtils中的RipgrepUtils
     console.log('Using ripgrep at:', rgPath);
@@ -264,7 +275,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('unityshader.buildSymbolCache', async () => {
             if (!symbolCacheManager) {
-                vscode.window.showErrorMessage('Symbol cache manager is not initialized');
+                vscode.window.showErrorMessage(l10n.t('Symbol cache manager is not initialized'));
                 return;
             }
             
@@ -272,16 +283,16 @@ export function activate(context: vscode.ExtensionContext) {
                 await vscode.window.withProgress(
                     {
                         location: vscode.ProgressLocation.Notification,
-                        title: 'Rebuilding symbol cache...',
+                        title: l10n.t('Rebuilding symbol cache...'),
                         cancellable: false,
                     },
                     async () => {
                         await symbolCacheManager!.rebuildCache();
                     }
                 );
-                vscode.window.showInformationMessage('Symbol cache rebuilt successfully');
+                vscode.window.showInformationMessage(l10n.t('Symbol cache rebuilt successfully'));
             } catch (error) {
-                vscode.window.showErrorMessage(`Failed to rebuild symbol cache: ${error}`);
+                vscode.window.showErrorMessage(l10n.t('Failed to rebuild symbol cache: {0}', String(error)));
             }
         })
     );
@@ -290,15 +301,15 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('unityshader.clearSymbolCache', async () => {
             if (!symbolCacheManager) {
-                vscode.window.showErrorMessage('Symbol cache manager is not initialized');
+                vscode.window.showErrorMessage(l10n.t('Symbol cache manager is not initialized'));
                 return;
             }
             
             try {
                 await symbolCacheManager.clearCache();
-                vscode.window.showInformationMessage('Symbol cache cleared successfully');
+                vscode.window.showInformationMessage(l10n.t('Symbol cache cleared successfully'));
             } catch (error) {
-                vscode.window.showErrorMessage(`Failed to clear symbol cache: ${error}`);
+                vscode.window.showErrorMessage(l10n.t('Failed to clear symbol cache: {0}', String(error)));
             }
         })
     );
@@ -309,15 +320,15 @@ export function activate(context: vscode.ExtensionContext) {
             const tips = mobileAnalyzer.getMobileOptimizationTips();
             const score = mobileAnalyzer.getLastComplexityScore();
             
-            let message = '📱 移动端 Shader 优化提示\n\n';
+            let message = l10n.t('📱 Mobile shader optimization tips\n\n');
             
             if (score) {
-                message += `当前复杂度: ${score.level} (评分: ${score.score})\n`;
-                message += `纹理操作: ${score.details.textureOps} | 数学运算: ${score.details.mathOps}\n`;
-                message += `分支: ${score.details.branches} | 循环: ${score.details.loops}\n\n`;
+                message += l10n.t('Current complexity: {0} (score: {1})\n', complexityLevelLabels[score.level], score.score);
+                message += l10n.t('Texture operations: {0} | Math operations: {1}\n', score.details.textureOps, score.details.mathOps);
+                message += l10n.t('Branches: {0} | Loops: {1}\n\n', score.details.branches, score.details.loops);
                 
                 if (score.suggestions.length > 0) {
-                    message += '🔧 针对当前代码的建议:\n';
+                    message += l10n.t('🔧 Suggestions for the current code:\n');
                     for (const suggestion of score.suggestions) {
                         message += `  • ${suggestion}\n`;
                     }
@@ -325,17 +336,18 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             }
             
-            message += '💡 通用优化建议:\n';
+            message += l10n.t('💡 General optimization tips:\n');
             for (const tip of tips) {
                 message += `${tip}\n`;
             }
             
+            const viewDetails = l10n.t('View Details');
             const result = await vscode.window.showInformationMessage(
-                '移动端 Shader 优化提示已在输出面板显示',
-                '查看详情'
+                l10n.t('Mobile shader optimization tips are available in the Output panel'),
+                viewDetails
             );
             
-            if (result === '查看详情') {
+            if (result === viewDetails) {
                 const outputChannel = vscode.window.createOutputChannel('Unity Shader Mobile');
                 outputChannel.clear();
                 outputChannel.appendLine(message);
@@ -353,7 +365,7 @@ export function activate(context: vscode.ExtensionContext) {
             await config.update('enabled', !currentEnabled, vscode.ConfigurationTarget.Global);
             
             vscode.window.showInformationMessage(
-                `移动端分析已${!currentEnabled ? '启用' : '禁用'}`
+                !currentEnabled ? l10n.t('Mobile analysis enabled') : l10n.t('Mobile analysis disabled')
             );
         })
     );

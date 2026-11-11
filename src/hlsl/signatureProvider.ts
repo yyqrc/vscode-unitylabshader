@@ -2,7 +2,6 @@
 
 import { SignatureHelpProvider, SignatureHelp, SignatureInformation, ParameterInformation, CancellationToken, TextDocument, Position, workspace } from 'vscode';
 import hlslGlobals = require('./hlslGlobals');
-import * as vscode from 'vscode';
 
 const _NL = '\n'.charCodeAt(0);
 const _TAB = '\t'.charCodeAt(0);
@@ -86,8 +85,6 @@ export default class HLSLSignatureHelperProvider implements SignatureHelpProvide
         if (!entry) {
             return null;
         }
-
-        vscode.window.showInformationMessage('provideSignatureHelp');
 
         let infos: ParameterInformation[] = [];
         let signature = ident;

@@ -1,3 +1,4 @@
+import { l10n } from 'vscode';
 import * as vscode from 'vscode';
 import { EngineDetector, EngineType } from './engineDetector';
 
@@ -26,7 +27,7 @@ export class EngineContextManager {
             100
         );
         this.statusBarItem.command = 'unityshader.switchEngine';
-        this.statusBarItem.tooltip = 'Click to switch shader engine type';
+        this.statusBarItem.tooltip = l10n.t('Click to switch shader engine type');
     }
     
     /**
@@ -127,44 +128,38 @@ export class EngineContextManager {
      * 显示引擎选择快速选择器
      */
     private async showEngineQuickPick(): Promise<void> {
-        const items: vscode.QuickPickItem[] = [
+        const items: (vscode.QuickPickItem & { engineType: 'auto' | 'unity' | 'unreal' })[] = [
             {
-                label: '$(symbol-misc) Auto Detect',
-                description: 'Automatically detect engine type',
-                detail: 'Detect based on file path, extension and content'
+                engineType: 'auto',
+                label: l10n.t('$(symbol-misc) Auto Detect'),
+                description: l10n.t('Automatically detect engine type'),
+                detail: l10n.t('Detect based on file path, extension and content')
             },
             {
+                engineType: 'unity',
                 label: '$(game) Unity',
-                description: 'Force Unity Engine mode',
-                detail: 'Show Unity-specific functions and variables'
+                description: l10n.t('Force Unity Engine mode'),
+                detail: l10n.t('Show Unity-specific functions and variables')
             },
             {
+                engineType: 'unreal',
                 label: '$(settings-gear) Unreal',
-                description: 'Force Unreal Engine mode',
-                detail: 'Show Unreal-specific functions and variables'
+                description: l10n.t('Force Unreal Engine mode'),
+                detail: l10n.t('Show Unreal-specific functions and variables')
             }
         ];
         
         const selected = await vscode.window.showQuickPick(items, {
-            placeHolder: 'Select shader engine type'
+            placeHolder: l10n.t('Select shader engine type')
         });
         
         if (!selected) {
             return;
         }
         
-        let engineType: string;
-        if (selected.label.includes('Auto')) {
-            engineType = 'auto';
-        } else if (selected.label.includes('Unity')) {
-            engineType = 'unity';
-        } else {
-            engineType = 'unreal';
-        }
-        
         // 更新配置
         const config = vscode.workspace.getConfiguration('unityshader');
-        await config.update('engineType', engineType, vscode.ConfigurationTarget.Global);
+        await config.update('engineType', selected.engineType, vscode.ConfigurationTarget.Global);
         
         // 立即更新上下文
         this.updateContext(vscode.window.activeTextEditor);

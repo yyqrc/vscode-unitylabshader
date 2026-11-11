@@ -1,3 +1,4 @@
+import { l10n } from 'vscode';
 import * as vscode from 'vscode';
 import { join } from 'path';
 import { getRgPath } from '../common';
@@ -51,19 +52,19 @@ export default class HLSLRenameProvider implements vscode.RenameProvider {
     ): vscode.ProviderResult<vscode.Range | { range: vscode.Range; placeholder: string }> {
         const wordRange = document.getWordRangeAtPosition(position);
         if (!wordRange) {
-            throw new Error('无法重命名：未选中有效的符号');
+            throw new Error(l10n.t('Cannot rename: no valid symbol selected'));
         }
 
         const word = document.getText(wordRange);
         
         // 检查是否是关键字（不能重命名）
         if (this.isKeyword(word)) {
-            throw new Error(`无法重命名关键字: ${word}`);
+            throw new Error(l10n.t('Cannot rename keyword: {0}', word));
         }
 
         // 检查是否是内置函数（不能重命名）
         if (this.isBuiltInFunction(word)) {
-            throw new Error(`无法重命名内置函数: ${word}`);
+            throw new Error(l10n.t('Cannot rename built-in function: {0}', word));
         }
 
         return {
@@ -91,7 +92,7 @@ export default class HLSLRenameProvider implements vscode.RenameProvider {
         
         // 验证新名称
         if (!this.isValidIdentifier(newName)) {
-            vscode.window.showErrorMessage(`无效的标识符名称: ${newName}`);
+            vscode.window.showErrorMessage(l10n.t('Invalid identifier name: {0}', newName));
             return null;
         }
 
@@ -105,7 +106,7 @@ export default class HLSLRenameProvider implements vscode.RenameProvider {
         const references = await this.searchWorkspaceReferences(oldName, symbolType);
         
         if (references.length === 0) {
-            vscode.window.showWarningMessage(`未找到符号 "${oldName}" 的引用`);
+            vscode.window.showWarningMessage(l10n.t('No references found for symbol "{0}"', oldName));
             return null;
         }
 
@@ -338,13 +339,13 @@ export default class HLSLRenameProvider implements vscode.RenameProvider {
         const totalRefs = references.length;
 
         // 创建预览项
-        const items: vscode.QuickPickItem[] = [];
+        const items: (vscode.QuickPickItem & { confirm?: boolean })[] = [];
         
         // 添加摘要信息
         items.push({
-            label: `$(info) 重命名摘要`,
+            label: l10n.t('$(info) Rename Summary'),
             description: `${oldName} → ${newName}`,
-            detail: `影响 ${fileCount} 个文件，共 ${totalRefs} 处引用`
+            detail: l10n.t('Affects {0} files with {1} references', fileCount, totalRefs)
         });
 
         items.push({
@@ -359,7 +360,7 @@ export default class HLSLRenameProvider implements vscode.RenameProvider {
             
             items.push({
                 label: `$(file) ${fileName}`,
-                description: `${locs.length} 处`,
+                description: l10n.t('{0} references', locs.length),
                 detail: relativePath
             });
 
@@ -369,7 +370,7 @@ export default class HLSLRenameProvider implements vscode.RenameProvider {
                 const loc = locs[i];
                 const preview = await this.getLinePreview(loc);
                 items.push({
-                    label: `  $(symbol-misc) Line ${loc.range.start.line + 1}`,
+                    label: l10n.t('  $(symbol-misc) Line {0}', loc.range.start.line + 1),
                     description: '',
                     detail: preview
                 });
@@ -377,7 +378,7 @@ export default class HLSLRenameProvider implements vscode.RenameProvider {
 
             if (locs.length > previewCount) {
                 items.push({
-                    label: `  ...还有 ${locs.length - previewCount} 处`,
+                    label: l10n.t('  ...and {0} more references', locs.length - previewCount),
                     description: '',
                     detail: ''
                 });
@@ -390,25 +391,26 @@ export default class HLSLRenameProvider implements vscode.RenameProvider {
         });
 
         items.push({
-            label: `$(check) 确认重命名`,
-            description: '按 Enter 继续',
-            detail: '将执行上述所有修改'
+            label: l10n.t('$(check) Confirm Rename'),
+            confirm: true,
+            description: l10n.t('Press Enter to continue'),
+            detail: l10n.t('Apply all changes listed above')
         });
 
         items.push({
-            label: `$(close) 取消`,
-            description: '按 Esc 取消',
-            detail: '不执行任何修改'
+            label: l10n.t('$(close) Cancel'),
+            description: l10n.t('Press Esc to cancel'),
+            detail: l10n.t('Leave all files unchanged')
         });
 
         // 显示预览
         const selected = await vscode.window.showQuickPick(items, {
-            placeHolder: `预览重命名操作：${oldName} → ${newName}`,
-            title: '重命名预览'
+            placeHolder: l10n.t('Preview rename: {0} → {1}', oldName, newName),
+            title: l10n.t('Rename Preview')
         });
 
         // 用户选择确认才继续
-        return selected?.label === `$(check) 确认重命名`;
+        return selected?.confirm === true;
     }
 
     /**
@@ -420,7 +422,7 @@ export default class HLSLRenameProvider implements vscode.RenameProvider {
             const line = document.lineAt(location.range.start.line);
             return line.text.trim();
         } catch (error) {
-            return '<无法加载预览>';
+            return l10n.t('<Preview unavailable>');
         }
     }
 

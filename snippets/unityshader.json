@@ -56,7 +56,7 @@
       "\tFallBack \"Diffuse\"",
       "}"
     ],
-    "description": "基础 Unity Shader 模板"
+    "description": "Basic Unity shader template"
   },
   "Surface Shader Template": {
     "prefix": "surfshader",
@@ -103,7 +103,7 @@
       "\tFallBack \"Diffuse\"",
       "}"
     ],
-    "description": "Unity Surface Shader 模板"
+    "description": "Unity surface shader template"
   },
   "Unlit Shader Template": {
     "prefix": "unlitshader",
@@ -164,7 +164,7 @@
       "\t}",
       "}"
     ],
-    "description": "Unity Unlit Shader 模板"
+    "description": "Unity unlit shader template"
   },
   "Transparent Shader Template": {
     "prefix": "transparentshader",
@@ -225,7 +225,7 @@
       "\t}",
       "}"
     ],
-    "description": "Unity 透明 Shader 模板"
+    "description": "Unity transparent shader template"
   },
   "Properties Block": {
     "prefix": "properties",
@@ -237,7 +237,7 @@
       "\t$0",
       "}"
     ],
-    "description": "ShaderLab Properties 块"
+    "description": "ShaderLab Properties block"
   },
   "SubShader Block": {
     "prefix": "subshader",
@@ -250,7 +250,7 @@
       "\t$0",
       "}"
     ],
-    "description": "ShaderLab SubShader 块"
+    "description": "ShaderLab SubShader block"
   },
   "Pass Block": {
     "prefix": "pass",
@@ -263,7 +263,7 @@
       "\t$0",
       "}"
     ],
-    "description": "ShaderLab Pass 块"
+    "description": "ShaderLab Pass block"
   },
   "CGPROGRAM Block": {
     "prefix": "cgprogram",
@@ -300,7 +300,7 @@
       "}",
       "ENDCG"
     ],
-    "description": "CGPROGRAM 代码块"
+    "description": "CGPROGRAM block"
   },
   "HLSLPROGRAM Block": {
     "prefix": "hlslprogram",
@@ -336,7 +336,7 @@
       "}",
       "ENDHLSL"
     ],
-    "description": "HLSLPROGRAM 代码块 (URP 风格)"
+    "description": "HLSLPROGRAM block (URP style)"
   },
   "appdata struct": {
     "prefix": "appdata",
@@ -350,7 +350,7 @@
       "\tfloat2 uv2 : TEXCOORD1;",
       "};"
     ],
-    "description": "顶点输入结构体"
+    "description": "Vertex input structure"
   },
   "v2f struct": {
     "prefix": "v2f",
@@ -363,7 +363,7 @@
       "\tfloat3 worldPos : TEXCOORD2;",
       "};"
     ],
-    "description": "顶点到片元结构体"
+    "description": "Vertex-to-fragment structure"
   },
   "Vertex Function": {
     "prefix": "vert",
@@ -378,7 +378,7 @@
       "\treturn o;",
       "}"
     ],
-    "description": "顶点着色器函数"
+    "description": "Vertex shader function"
   },
   "Fragment Function": {
     "prefix": "frag",
@@ -390,84 +390,84 @@
       "\treturn col;",
       "}"
     ],
-    "description": "片元着色器函数"
+    "description": "Fragment shader function"
   },
   "Property 2D Texture": {
     "prefix": "prop2d",
     "body": [
       "_${1:MainTex} (\"${2:Texture}\", 2D) = \"white\" {}"
     ],
-    "description": "2D 纹理属性"
+    "description": "2D texture property"
   },
   "Property Color": {
     "prefix": "propcolor",
     "body": [
       "_${1:Color} (\"${2:Color}\", Color) = (1,1,1,1)"
     ],
-    "description": "颜色属性"
+    "description": "Color property"
   },
   "Property Float": {
     "prefix": "propfloat",
     "body": [
       "_${1:Value} (\"${2:Value}\", Float) = ${3:1.0}"
     ],
-    "description": "浮点数属性"
+    "description": "Floating-point property"
   },
   "Property Range": {
     "prefix": "proprange",
     "body": [
       "_${1:Value} (\"${2:Value}\", Range(${3:0}, ${4:1})) = ${5:0.5}"
     ],
-    "description": "范围滑块属性"
+    "description": "Range slider property"
   },
   "Property Vector": {
     "prefix": "propvector",
     "body": [
       "_${1:Vector} (\"${2:Vector}\", Vector) = (0,0,0,0)"
     ],
-    "description": "向量属性"
+    "description": "Vector property"
   },
   "Property Cube": {
     "prefix": "propcube",
     "body": [
       "_${1:Cube} (\"${2:Cubemap}\", Cube) = \"_Skybox\" {}"
     ],
-    "description": "立方体贴图属性"
+    "description": "Cube map property"
   },
   "#pragma vertex": {
     "prefix": "#pragma vertex",
     "body": [
       "#pragma vertex ${1:vert}"
     ],
-    "description": "指定顶点着色器函数"
+    "description": "Specify the vertex shader function"
   },
   "#pragma fragment": {
     "prefix": "#pragma fragment",
     "body": [
       "#pragma fragment ${1:frag}"
     ],
-    "description": "指定片元着色器函数"
+    "description": "Specify the fragment shader function"
   },
   "#pragma target": {
     "prefix": "#pragma target",
     "body": [
       "#pragma target ${1|3.0,3.5,4.0,4.5,5.0|}"
     ],
-    "description": "指定着色器模型版本"
+    "description": "Specify the shader model version"
   },
   "#pragma multi_compile": {
     "prefix": "#pragma multi_compile",
     "body": [
       "#pragma multi_compile _ ${1:_KEYWORD}"
     ],
-    "description": "多编译变体"
+    "description": "Multi-compile variants"
   },
   "#pragma shader_feature": {
     "prefix": "#pragma shader_feature",
     "body": [
       "#pragma shader_feature ${1:_KEYWORD}"
     ],
-    "description": "着色器特性"
+    "description": "Shader features"
   },
   "Tags": {
     "prefix": "tags",
@@ -481,7 +481,7 @@
     "body": [
       "Blend ${1|SrcAlpha,One,Zero,DstColor,SrcColor,OneMinusSrcAlpha,OneMinusDstAlpha|} ${2|OneMinusSrcAlpha,One,Zero,DstColor,SrcColor,SrcAlpha,OneMinusDstAlpha|}"
     ],
-    "description": "混合模式"
+    "description": "Blend mode"
   },
   "URP Unlit Shader": {
     "prefix": "urpunlit",
@@ -547,7 +547,7 @@
       "\t}",
       "}"
     ],
-    "description": "URP Unlit Shader 模板"
+    "description": "URP unlit shader template"
   },
   "URP Lit Shader": {
     "prefix": "urplit",
@@ -633,7 +633,7 @@
       "\t}",
       "}"
     ],
-    "description": "URP Lit Shader 模板"
+    "description": "URP lit shader template"
   },
   "Shadow Caster Pass": {
     "prefix": "shadowcaster",
@@ -674,6 +674,6 @@
       "\tENDCG",
       "}"
     ],
-    "description": "阴影投射 Pass"
+    "description": "Shadow caster pass"
   }
 }
