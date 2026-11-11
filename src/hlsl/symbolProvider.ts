@@ -373,11 +373,10 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
                         let searchPattern = query.slice(3, query.length);
                         try {
                             // 使用RipgrepUtils统一接口
-                            const escapedPattern = RipgrepUtils.escapeRegExpForShell(searchPattern);
                             this.devLog(`[Symbol] Searching custom pattern: ${searchPattern}`);
                             
                             const matches = RipgrepUtils.search({
-                                pattern: escapedPattern,
+                                pattern: searchPattern,
                                 rootPath,
                                 extensions: this._hlslPattern,
                                 useRegex: true,
@@ -415,7 +414,6 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
                             const kindStartTime = Date.now();
 
                             // 使用RipgrepUtils统一接口（带重试和fallback）
-                            const escapedPattern = RipgrepUtils.escapeRegExpForShell(searchPattern);
                             this.devLog(`[Symbol] Searching ${SymbolKind[kind]}`);
                             
                             // 策略4: 减少 Module 搜索的重试次数（从4次降到1次）
@@ -424,7 +422,7 @@ export default class HLSLDocumentSymbolProvider implements DocumentSymbolProvide
                             
                             const matches = RipgrepUtils.searchWithRetry(
                                 {
-                                    pattern: escapedPattern,
+                                    pattern: searchPattern,
                                     rootPath,
                                     extensions: this._hlslPattern,
                                     useRegex: true,

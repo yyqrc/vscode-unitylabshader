@@ -504,20 +504,9 @@ export default class HLSLDefinitionProvider implements DefinitionProvider, Imple
                     const rootPath = folder.uri.fsPath;
 
                     // 优化：根据推测的类型调整搜索顺序和策略
-                    if (symbolType === 'function') {
-                        // 只搜索函数（最常见的情况）
-                        const funcStart = Date.now();
-                        const funcResults = await this.searchFunctionDefinitions(name, rootPath);
-                        this.devLog(`[Performance] Function search: ${Date.now() - funcStart}ms`);
-                        results.push(...funcResults);
-                        
-                        // 提前终止：找到结果就返回
-                        if (results.length > 0) {
-                            this.devLog(`[Search] Found ${results.length} results, early termination`);
-                            break;
-                        }
-                    } else if (symbolType === 'both') {
-                        // 宏函数：同时搜索宏和函数
+                    if (symbolType === 'function' || symbolType === 'both') {
+                        // 宏名称不受大小写或长度限制；函数调用也可能是 MixedMacro(x)、F(x)。
+                        // 直接搜索两者，避免依赖尚未构建完成的工作区符号索引。
                         const bothStart = Date.now();
                         const [macroResults, funcResults] = await Promise.all([
                             this.searchMacroDefinitions(name, rootPath),

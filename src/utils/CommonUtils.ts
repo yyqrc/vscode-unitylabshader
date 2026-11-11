@@ -4,7 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import { execSync } from 'child_process';
+import { execSync, execFileSync } from 'child_process';
 import { join } from 'path';
 import { PathUtils } from './RegexCache';
 import { WorkspaceIgnore } from './WorkspaceIgnore';
@@ -74,14 +74,14 @@ export class RipgrepUtils {
         const results: RipgrepMatch[] = [];
 
         try {
-            // 构建ripgrep命令
+            // 直接传递参数，避免 POSIX shell 展开 glob 或改写正则表达式。
             const rgPath = this.getRgPath();
             const args: string[] = [];
 
             // 添加扩展名过滤
             if (options.extensions && options.extensions.length > 0) {
                 for (const ext of options.extensions) {
-                    args.push(`-g *${ext}`);
+                    args.push('-g', `*${ext}`);
                 }
             }
 
@@ -94,14 +94,11 @@ export class RipgrepUtils {
             }
 
             // 添加搜索模式
-            args.push('-e', `"${options.pattern}"`);
+            args.push('-e', options.pattern);
             args.push('.');
 
-            // 构建完整命令
-            const fullCommand = `"${rgPath}" ${args.join(' ')}`;
-
             // 执行搜索
-            const output = execSync(fullCommand, {
+            const output = execFileSync(rgPath, args, {
                 cwd: options.rootPath,
                 maxBuffer: options.maxBuffer || 1024 * 1024,
                 encoding: 'utf-8',

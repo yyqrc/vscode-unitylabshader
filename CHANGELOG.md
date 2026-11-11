@@ -4,6 +4,12 @@ All notable changes to the "Unity Shader" extension will be documented in this f
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.1.4] - 2026-11-11
+
+### Fixed
+- 修复 macOS/Linux 上搜索通配符被 shell 展开，导致子目录宏定义漏查的问题。
+- 修复符号缓存尚未就绪时，混合大小写宏和短函数宏无法直接跳转的问题。
+
 ## [1.1.3] - 2026-11-11
 
 ### Added
